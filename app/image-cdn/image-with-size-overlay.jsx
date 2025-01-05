@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getResourceSize } from 'utils';
+import { getResourceSize } from '@/utils';
 
 export function ImageWithSizeOverlay({ src, srcSet, sizes, overlayPosition }) {
     const imageRef = useRef();

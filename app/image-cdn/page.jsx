@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { Markdown } from '@/components/markdown';
-import { getNetlifyContext } from 'utils';
+import { getNetlifyContext } from '@/utils';
 import { ImageWithSizeOverlay } from './image-with-size-overlay';
 import { ContextAlert } from '@/components/context-alert';
 
@@ -55,11 +55,11 @@ export default function Page() {
     return (
         <div className="flex flex-col gap-6 sm:gap-12">
             <section className="flex flex-col items-start gap-6 sm:gap-8">
-                <ContextAlert addedChecksFunction={
-                    (ctx) => {
-                        return ctx === "dev" ? devModeWarning : null;
-                    }
-                } />
+                <ContextAlert
+                    addedChecksFunction={(ctx) => {
+                        return ctx === 'dev' ? devModeWarning : null;
+                    }}
+                />
                 <h1 className="mb-0">Image CDN</h1>
             </section>
             <section>
