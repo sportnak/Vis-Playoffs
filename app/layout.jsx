@@ -1,6 +1,4 @@
 import '../styles/globals.css';
-import { Footer } from '../components/footer';
-import { Header } from '../components/header';
 import { Provider } from '@/components/ui/provider';
 
 export const metadata = {
@@ -16,13 +14,26 @@ export default function RootLayout({ children }) {
             <head>
                 <link rel="icon" href="/favicon.svg" sizes="any" />
             </head>
-            <body className="antialiased text-white bg-blue-900">
-                <div className="flex flex-col min-h-screen px-6 bg-grid-pattern sm:px-12">
+            <body
+                className="antialiased text-white"
+                style={{
+                    background: 'linear-gradient(to bottom, rgb(30 58 138 / var(--tw-bg-opacity, 1)), black)'
+                }}
+            >
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: '100vh',
+                        paddingLeft: '1.5rem', // equivalent to px-6
+                        paddingRight: '1.5rem', // equivalent to px-6
+                        backgroundImage:
+                            'linear-gradient(to bottom, rgb(10 10 10 / 0%), rgb(10 10 10 / 100%)), url(/images/noise.png)'
+                    }}
+                >
                     <div className="flex flex-col w-full max-w-5xl mx-auto grow">
                         <Provider>
-                            <Header />
                             <div className="grow">{children}</div>
-                            <Footer />
                         </Provider>
                     </div>
                 </div>
