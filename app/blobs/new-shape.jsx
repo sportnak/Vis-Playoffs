@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { generateBlob } from 'app/blobs/generator';
+import { generateBlob } from '@/app/blobs/generator';
 import { ShapeRenderer } from './renderer';
 import { uploadShapeAction } from './actions';
 import { uploadDisabled } from 'utils';
@@ -43,7 +43,11 @@ export function NewShape(props) {
                 <button className="btn btn-primary" onClick={randomizeBlob}>
                     Randomize
                 </button>
-                <button className="btn btn-primary" onClick={onUpload} disabled={uploadDisabled || wasUploaded || !blobData}>
+                <button
+                    className="btn btn-primary"
+                    onClick={onUpload}
+                    disabled={uploadDisabled || wasUploaded || !blobData}
+                >
                     Upload
                 </button>
             </div>

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Check if a user's logged in
   const {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     await supabase.auth.signOut();
   }
 
-  cookies().delete("x-authenticated");
+  (await cookies()).delete("x-authenticated");
   revalidatePath("/", "layout");
   return NextResponse.redirect(new URL("/login", req.url), {
     status: 302,

@@ -24,8 +24,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "public/*": ["./public/*"],
-      "utils": ["./utils"]
+      "public/*": ["./public/*"]
     }
   },
   "include": [

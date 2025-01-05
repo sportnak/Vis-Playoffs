@@ -1,7 +1,9 @@
+'use server';
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SupabaseClient } from "@supabase/supabase-js";
 
-export const createClient = async () => {
+export async function createClient(): Promise<SupabaseClient> {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -23,7 +25,7 @@ export const createClient = async () => {
             // user sessions.
           }
         },
-      },
+      } as any,
     },
   );
 };
