@@ -21,7 +21,7 @@ export const updateSession = async (request: NextRequest) => {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     
-    if (request.nextUrl.pathname.startsWith('/login')) {
+    if (request.nextUrl.pathname.startsWith('/login') && user_response.data.user != null) {
       return NextResponse.redirect(new URL("/", request.url));
     }
     return response;
