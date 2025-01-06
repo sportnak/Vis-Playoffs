@@ -1,24 +1,17 @@
 'use client';
-import { useAppSelector } from '@/app/hooks';
-import { Box, Center, Heading, Tabs, Text } from '@chakra-ui/react';
-import { useRouter, useParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
-import DraftView from './draft';
+import { useLeague, useUser } from '@/app/hooks';
+import { Box, Button, Center, Heading, HStack, Text } from '@chakra-ui/react';
+import { useParams, useRouter } from 'next/navigation';
+import React from 'react';
 
-const LeagueView = () => {
-    const router = useRouter();
+export default function League() {
     const { league_id } = useParams();
-    const leagues = useAppSelector((state) => state.app.leagues);
-    const [league, setLeague] = useState(null);
+    const { league } = useLeague(league_id as string);
+    const { user } = useUser();
+    const router = useRouter();
 
-    useEffect(() => {
-        if (leagues && league_id) {
-            const foundLeague = leagues.find((l) => l.id === parseInt(league_id?.toString()));
-            setLeague(foundLeague);
-        }
-    }, [leagues, league_id]);
+    const isAdmin = user?.id === league?.admin_id;
 
-    console.log(league_id);
     if (!league) {
         return (
             <Center>
@@ -27,55 +20,18 @@ const LeagueView = () => {
         );
     }
 
-    const items = [
-        {
-          title: "Teams",
-          content: "Dolore ex esse laboris elit magna esse sunt",
-        },
-        {
-          title: "Draft",
-          content: <DraftView />
-        },
-      ]
-
     return (
-        <Box maxW={'600px'} mx={'auto'} p={5}>
-            <Heading as="h2" size="lg" pb="20px">
-                {league.name}
-            </Heading>
-            <Text fontSize="md">League ID: {league.id}</Text>
-            
-            <Tabs.Root defaultValue="1" width="full">
-                <Tabs.List>
-                {items.map((item, index) => (
-                    <Tabs.Trigger key={index} value={item.title}>
-                    Tab {item.title}
-                    </Tabs.Trigger>
-                ))}
-                </Tabs.List>
-                <Box pos="relative" minH="200px" width="full">
-                {items.map((item, index) => (
-                    <Tabs.Content
-                    key={index}
-                    value={item.title}
-                    position="absolute"
-                    inset="0"
-                    _open={{
-                        animationName: "fade-in, scale-in",
-                        animationDuration: "300ms",
-                    }}
-                    _closed={{
-                        animationName: "fade-out, scale-out",
-                        animationDuration: "120ms",
-                    }}
-                    >
-                    {item.content}
-                    </Tabs.Content>
-                ))}
-                </Box>
-            </Tabs.Root>
+        <Box maxW={'1000px'} mx={'auto'} p={5}>
+            <HStack w="100%" justifyContent="space-between">
+                <Heading as="h2" size="lg" pb="20px">
+                    {league.name}
+                </Heading>
+                {isAdmin && (
+                    <Button variant="solid" onClick={() => router.push(`/leagues/${league_id}/manage`)}>
+                        Manage
+                    </Button>
+                )}
+            </HStack>
         </Box>
     );
-};
-
-export default LeagueView;
+}

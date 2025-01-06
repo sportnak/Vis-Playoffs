@@ -31,7 +31,20 @@ const uniqueNamesConfig = {
 };
 
 export function uniqueName() {
-    return uniqueNamesGenerator(uniqueNamesConfig) + "-" + randomInt(100, 999);
+    return uniqueNamesGenerator(uniqueNamesConfig) + '-' + randomInt(100, 999);
 }
 
-export const uploadDisabled = process.env.NEXT_PUBLIC_DISABLE_UPLOADS?.toLowerCase() === "true";
+export const uploadDisabled = process.env.NEXT_PUBLIC_DISABLE_UPLOADS?.toLowerCase() === 'true';
+
+export function mapRound(round) {
+    switch (round) {
+        case -1:
+            return 'Week 18';
+        case 1:
+            return 'Wildcard';
+        case 2:
+            return 'Divisional';
+        case 3:
+            return 'Conference';
+    }
+}

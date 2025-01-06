@@ -1,8 +1,13 @@
 'use client';
 import { Provider as ReactReduxProvider } from 'react-redux';
-import { useUser } from '@/app/hooks';
 import store from '@/store';
+import Header from './header';
 
 export function ReduxProvider({ children }) {
-    return <ReactReduxProvider store={store}>{children}</ReactReduxProvider>;
+    return (
+        <ReactReduxProvider store={store}>
+            <Header />
+            {children}
+        </ReactReduxProvider>
+    );
 }

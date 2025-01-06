@@ -19,6 +19,7 @@ export default function Header() {
                 width: '100%',
                 position: 'fixed',
                 left: 0,
+                zIndex: 10,
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
             }}
         >

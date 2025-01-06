@@ -2,6 +2,7 @@ import '../styles/globals.css';
 import { Provider } from '@/components/ui/provider';
 import Header from '@/components/header';
 import { ReduxProvider } from '@/components/redux-provider';
+import { Toaster } from '@/components/ui/toaster';
 
 export const metadata = {
     title: {
@@ -36,10 +37,10 @@ export default function RootLayout({ children }) {
                     <div className="flex flex-col w-full max-w-5xl mx-auto grow">
                         <Provider>
                             <ReduxProvider>
-                                <Header />
                                 <div style={{ marginTop: '100px' }} className="grow">
                                     {children}
                                 </div>
+                                <Toaster />
                             </ReduxProvider>
                         </Provider>
                     </div>

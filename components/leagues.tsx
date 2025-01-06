@@ -1,27 +1,11 @@
 'use client';
-import { loadLeagues } from '@/actions/league';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { setLeagues } from '@/store/appSlice';
+import { useLeagues } from '@/app/hooks';
 import { Box, Center, Heading, Spinner, Table } from '@chakra-ui/react';
 import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 const LeaguesList = () => {
-    const leagues = useAppSelector((state) => state.app.leagues);
-    const dispatch = useAppDispatch();
-
-    useEffect(() => {
-        if (leagues != null) {
-            return;
-        }
-
-        async function load() {
-            const response = await loadLeagues();
-            dispatch(setLeagues(response.data));
-        }
-
-        load();
-    }, [leagues]);
+    const { leagues } = useLeagues();
 
     const router = useRouter();
     const setActiveLeague = useCallback((id: number) => {

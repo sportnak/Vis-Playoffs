@@ -1,8 +1,7 @@
-import { loadLeagues } from '@/actions/league';
 import { createSlice } from '@reduxjs/toolkit';
 
-export const leagueSlice = createSlice({
-    name: 'league',
+export const leaguesSlice = createSlice({
+    name: 'leagues',
     initialState: {
         leagues: null,
     },
@@ -12,6 +11,6 @@ export const leagueSlice = createSlice({
         }
     },
 });
-export const { setLeagues} = leagueSlice.actions
+export const { setLeagues } = leaguesSlice.actions
 
-export default leagueSlice.reducer
+export default leaguesSlice.reducer
