@@ -12,6 +12,7 @@
         "@chakra-ui/react": "^3.2.5",
         "@emotion/react": "^11.14.0",
         "@netlify/blobs": "^8.1.0",
+        "@reduxjs/toolkit": "^2.5.0",
         "@supabase/ssr": "^0.3.0",
         "@supabase/supabase-js": "^2.43.4",
         "better-supabase-types": "^2.7.5",
@@ -24,6 +25,7 @@
         "react-dom": "18.3.1",
         "react-hook-form": "^7.54.2",
         "react-icons": "^5.4.0",
+        "react-redux": "^9.2.0",
         "unique-names-generator": "^4.7.1"
     },
     "devDependencies": {

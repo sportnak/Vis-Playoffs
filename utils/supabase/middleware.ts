@@ -20,6 +20,10 @@ export const updateSession = async (request: NextRequest) => {
         !request.nextUrl.pathname.startsWith('/auth')) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
+    
+    if (request.nextUrl.pathname.startsWith('/login')) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
     return response;
   } catch (e) {
     // If you are here, a Supabase client could not be created!

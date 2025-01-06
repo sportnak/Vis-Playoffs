@@ -1,5 +1,7 @@
 import '../styles/globals.css';
 import { Provider } from '@/components/ui/provider';
+import Header from '@/components/header';
+import { ReduxProvider } from '@/components/redux-provider';
 
 export const metadata = {
     title: {
@@ -33,7 +35,12 @@ export default function RootLayout({ children }) {
                 >
                     <div className="flex flex-col w-full max-w-5xl mx-auto grow">
                         <Provider>
-                            <div className="grow">{children}</div>
+                            <ReduxProvider>
+                                <Header />
+                                <div style={{ marginTop: '100px' }} className="grow">
+                                    {children}
+                                </div>
+                            </ReduxProvider>
                         </Provider>
                     </div>
                 </div>
