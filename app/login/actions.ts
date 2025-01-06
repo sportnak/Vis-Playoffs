@@ -18,7 +18,7 @@ export async function login(formData) {
   const response = await client.auth.signInWithPassword(data);
   console.log(response)
   if (response.error) {
-    redirect("/error");
+    return response
   }
 
   revalidatePath("/", "layout");
@@ -32,12 +32,11 @@ export async function signup(formData: Record<string, string>) {
   };
 
   const client = await createClient();
-  const { error } = await client.auth.signUp(data);
+  const response = await client.auth.signUp(data);
+  console.log(response)
 
-  if (error) {
-    redirect("/error");
+  if (response.error != null) {
+    return response
   }
 
-  revalidatePath("/", "layout");
-  redirect("/");
 }
