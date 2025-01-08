@@ -10,9 +10,7 @@ export function LoginComponent({ toggleComponent }) {
     const { handleSubmit, control } = useForm<{ email: string; password: string }>();
 
     const onSubmit = async (data: { email: string; password: string }) => {
-        console.log(data);
         const result = await login(data);
-        console.log(result);
         if (result?.error) {
             toaster.create({
                 type: 'error',
@@ -55,9 +53,7 @@ export function RegisterComponent({ toggleComponent }) {
     const { handleSubmit, register } = useForm<{ email: string; password: string }>();
 
     const handleRegister = useCallback(async (data) => {
-        console.log(data);
         const result = await signup(data);
-        console.log(result);
         if (result?.error) {
             toaster.create({
                 type: 'error',

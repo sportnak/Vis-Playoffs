@@ -16,7 +16,6 @@ export async function login(formData) {
 
   const client = await createClient();
   const response = await client.auth.signInWithPassword(data);
-  console.log(response)
   if (response.error) {
     return response
   }
@@ -33,7 +32,6 @@ export async function signup(formData: Record<string, string>) {
 
   const client = await createClient();
   const response = await client.auth.signUp(data);
-  console.log(response)
 
   if (response.error != null) {
     return response

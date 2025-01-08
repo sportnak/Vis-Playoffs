@@ -1,11 +1,15 @@
 'use client';
 import Link from 'next/link';
 import { Button } from '@chakra-ui/react';
+import { createClient } from '@/utils/supabase/client';
 
 export default function Header() {
-    const handleSignOut = () => {
+    const handleSignOut = async () => {
         // Logic for signing out the user
         console.log('User signed out');
+        const client = await createClient();
+        await client.auth.signOut();
+        window.location.href = '/login';
     };
 
     return (

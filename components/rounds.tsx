@@ -85,7 +85,6 @@ function RoundSettings({ round, onClose, leagueId }: { leagueId: number; round: 
         defaultValues: round.round_settings[0]
     });
     const onSubmit = async (data: IRoundSettings) => {
-        console.log(data);
         const playerCountFields = ['rb_count', 'flex_count', 'qb_count', 'wr_count', 'te_count', 'sf_count'];
         const scoringFields = ['rb_ppr'];
 
@@ -101,7 +100,6 @@ function RoundSettings({ round, onClose, leagueId }: { leagueId: number; round: 
             }
         });
 
-        console.log(has_errors);
         if (!has_errors) {
             await upsertSettings({
                 id: round.round_settings[0]?.id,
@@ -262,7 +260,8 @@ function Pools({ round, onClose, leagueId }: { leagueId: number; round: NFLRound
             title: 'Pools Assigned',
             type: 'success'
         });
-    }, [members, pools]);
+        loadPools();
+    }, [members, pools, loadPools]);
 
     const handlePoolGeneration = useCallback(async () => {
         loadPools();
@@ -298,6 +297,7 @@ function Pools({ round, onClose, leagueId }: { leagueId: number; round: NFLRound
                     <Table.Row>
                         <Table.ColumnHeader>Email</Table.ColumnHeader>
                         <Table.ColumnHeader>Team Assigned</Table.ColumnHeader>
+                        <Table.ColumnHeader>Pick</Table.ColumnHeader>
                         <Table.ColumnHeader>Pool Name</Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
@@ -309,6 +309,9 @@ function Pools({ round, onClose, leagueId }: { leagueId: number; round: NFLRound
                             <Table.Row key={index}>
                                 <Table.Cell>{member.email}</Table.Cell>
                                 <Table.Cell>{team != null ? 'Assigned' : 'Unassigned'}</Table.Cell>
+                                <Table.Cell>
+                                    {!pool ? '' : pool.draft_order.findIndex((x) => x === team.id) + 1}
+                                </Table.Cell>
                                 <Table.Cell>{pool?.name ?? ''}</Table.Cell>
                             </Table.Row>
                         );

@@ -5,6 +5,30 @@ export interface Member {
     status: 'pending' | 'accepted'
 }
 
+export interface Player {
+    id: number,
+    is_te: boolean,
+    is_rb: boolean,
+    is_wr: boolean,
+    is_qb: boolean,
+    name: string,
+    team_id: number
+    nfl_team: NFLTeam
+}
+
+export interface NFLTeam {
+    id: number,
+    name: string
+}
+
+export interface TeamPlayer {
+    id: number,
+    player_id: number,
+    team_id: number
+    pool_id: number
+    player: Player
+}
+
 export interface Pool {
     id: number,
     league_id: number,

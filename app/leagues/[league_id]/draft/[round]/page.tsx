@@ -6,8 +6,8 @@ import React from 'react';
 import DraftTable from '@/components/draft-table';
 
 const LeagueView = () => {
-    const { league_id } = useParams();
-    const { league } = useLeague(league_id.toString());
+    const { league_id: leagueId, round: roundId } = useParams();
+    const { league } = useLeague(leagueId.toString());
 
     if (!league) {
         return (
@@ -19,12 +19,12 @@ const LeagueView = () => {
 
     const items = [
         {
-            title: 'Teams',
-            content: 'Dolore ex esse laboris elit magna esse sunt'
-        },
-        {
             title: 'Draft',
             content: <DraftTable />
+        },
+        {
+            title: 'Pool Teams',
+            content: 'Dolore ex esse laboris elit magna esse sunt'
         }
     ];
 
@@ -35,11 +35,11 @@ const LeagueView = () => {
             </Heading>
             <Text fontSize="md">League ID: {league.id}</Text>
 
-            <Tabs.Root defaultValue="1" width="full">
+            <Tabs.Root defaultValue="Draft" width="full">
                 <Tabs.List>
                     {items.map((item, index) => (
                         <Tabs.Trigger key={index} value={item.title}>
-                            Tab {item.title}
+                            {item.title}
                         </Tabs.Trigger>
                     ))}
                 </Tabs.List>
