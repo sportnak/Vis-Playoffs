@@ -19,18 +19,17 @@ export default function Header() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '16px',
-                background: '#d0d0d0', // Darkened background
+                background: 'rgba(128, 128, 128, 0.5)', // Darkened background
                 width: '100%',
                 position: 'fixed',
                 left: 0,
                 zIndex: 10,
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                height: '50px'
             }}
         >
-            <Link href="/" style={{ fontSize: '1.125rem', fontWeight: 'bold' }}>
-                Home
-            </Link>
-            <Button onClick={handleSignOut} style={{ backgroundColor: 'red', color: 'white' }}>
+            <Link href="/">Home</Link>
+            <Button onClick={handleSignOut} variant="ghost">
                 Sign Out
             </Button>
         </header>

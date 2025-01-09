@@ -10,7 +10,8 @@ import {
     Input,
     Center,
     Box,
-    useDialog
+    useDialog,
+    createListCollection
 } from '@chakra-ui/react';
 import {
     DialogRoot,
@@ -29,50 +30,29 @@ import { toaster } from './ui/toaster';
 import { useTeams } from '@/app/leagues/[league_id]/manage/hooks';
 import { Checkbox } from './ui/checkbox';
 import { mapPos } from '@/app/util';
+import { Member, Team } from '@/app/types';
+import { SelectContent, SelectItem, SelectLabel, SelectRoot, SelectTrigger, SelectValueText } from './ui/select';
 
-const players = [
-    {
-        id: 1,
-        name: 'Justin Jefferson',
-        team: 'Minesota Vikings'
-    },
-    {
-        id: 2,
-        name: 'Patrick Mahomes',
-        team: 'Kansas City Chiefs'
-    },
-    {
-        id: 3,
-        name: 'Derrick Henry',
-        team: 'Tennessee Titans'
-    },
-    {
-        id: 4,
-        name: 'Davante Adams',
-        team: 'Las Vegas Raiders'
-    },
-    {
-        id: 5,
-        name: 'Aaron Rodgers',
-        team: 'New York Jets'
-    },
-    {
-        id: 6,
-        name: 'Travis Kelce',
-        team: 'Kansas City Chiefs'
-    }
-];
+const positions = createListCollection({
+    items: [
+        { value: '', label: 'ALL' },
+        { value: 'QB', label: 'QB' },
+        { value: 'RB', label: 'RB' },
+        { value: 'WR', label: 'WR' },
+        { value: 'TE', label: 'TE' },
+        { value: 'FLEX', label: 'FLEX' },
+        { value: 'SF', label: 'SF' }
+    ]
+});
 
-export default function Draft() {
-    const { league_id, round: round_id } = useParams();
-    const { user } = useUser();
-    const { member, pool, draftPlayer, refreshDraft } = useDraft(
-        parseInt(league_id as string),
-        parseInt(round_id as string),
-        user
-    );
-
-    const [query, setQuery] = useState({ drafted: false, round_id: round_id as string, name: '', team_ids: [] });
+export default function Draft({ roundId, pool, teams, member, draftPlayer, refreshDraft }) {
+    const [query, setQuery] = useState({
+        drafted: false,
+        pos: '',
+        round_id: roundId as string,
+        name: '',
+        team_ids: []
+    });
     const handleChangeDrafted = useCallback(() => {
         setQuery((x) => ({ ...x, drafted: !x.drafted }));
     }, []);
@@ -81,18 +61,33 @@ export default function Draft() {
         setQuery((x) => ({ ...x, name: e.target.value }));
     }, []);
 
+    const handlePosChange = useCallback((e) => {
+        setQuery((x) => ({
+            ...x,
+            pos: e.value[0]
+        }));
+    }, []);
+
     const { nflPlayers, load } = useNFLPlayers(query, pool?.id);
 
     const [playerConfirmation, setPlayerConfirmation] = useState<any>();
 
     const [isTurn, setIsTurn] = useState(false);
+    const [currTurn, setCurrTurn] = useState<Team>(null);
+    useEffect(() => {
+        if (!pool || !teams) {
+            return;
+        }
+        setCurrTurn(teams.find((x) => x.id === pool.current));
+    }, [pool, teams]);
+
     useEffect(() => {
         if (!pool) return;
         const team = pool.team.find((x) => x.member_id === member?.id);
         if (pool.current === team?.id) {
             setIsTurn(true);
         }
-    }, [pool, member]);
+    }, [member?.id, pool]);
 
     const handleDraftPlayer = useCallback(
         async (player_id: number) => {
@@ -111,7 +106,7 @@ export default function Draft() {
             refreshDraft();
             load();
         },
-        [draftPlayer, nflPlayers, load]
+        [draftPlayer, nflPlayers, refreshDraft, load]
     );
     const dialog = useDialog();
 
@@ -140,16 +135,53 @@ export default function Draft() {
                 <HStack mb={5} w="100%" justifyContent="space-between">
                     <Heading as="h2">Players</Heading>
                     <HStack>
-                        <Input value={query.name} onChange={handleNameChange} />
-                        <Checkbox cursor="pointer" checked={query.drafted} onChange={handleChangeDrafted}>
+                        <SelectRoot
+                            style={{ borderColor: 'gray', width: '150px', cursor: 'pointer' }}
+                            collection={positions}
+                            value={[query.pos]}
+                            onValueChange={handlePosChange}
+                            variant="subtle"
+                        >
+                            <SelectTrigger style={{ borderColor: 'gray' }}>
+                                <SelectValueText placeholder="POS..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {positions?.items.map((team: any) => (
+                                    <SelectItem cursor="pointer" item={team} key={team.value}>
+                                        {team.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </SelectRoot>
+                        <Checkbox
+                            variant="subtle"
+                            cursor="pointer"
+                            mr="10px"
+                            checked={query.drafted}
+                            onChange={handleChangeDrafted}
+                        >
                             Drafted
                         </Checkbox>
+                        <Input
+                            w="300px"
+                            variant="subtle"
+                            placeholder="Search..."
+                            value={query.name}
+                            onChange={handleNameChange}
+                        />
                     </HStack>
                 </HStack>
-                {pool && (
-                    <Center w="100%" p={4}>
+                {pool && currTurn && (
+                    <Center
+                        w="100%"
+                        p={4}
+                        border="1px solid gray"
+                        borderRadius="6px"
+                        bg="rgba(128, 128, 128, 0.5)"
+                        mb={5}
+                    >
                         <Heading size={'md'} as="h5">
-                            {isTurn ? "It's your turn to pick!" : `Waiting on ${pool?.current}`}
+                            {isTurn ? "It's your turn to pick!" : `Waiting on ${currTurn?.name}`}
                         </Heading>
                     </Center>
                 )}

@@ -1,10 +1,11 @@
 'use client';
 import { useLeague, useUser } from '@/app/hooks';
-import { Box, Button, Center, DialogTrigger, Heading, HStack, Table, Text } from '@chakra-ui/react';
+import { Box, Button, Center, DialogTrigger, Heading, HStack, Table, Tabs, Text } from '@chakra-ui/react';
 import { useParams, useRouter } from 'next/navigation';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useRounds } from './manage/hooks';
 import { mapRound } from '@/utils';
+import { Scoreboard } from '@/components/scoreboard';
 
 export default function League() {
     const { league_id } = useParams();
@@ -21,6 +22,73 @@ export default function League() {
             router.push(`/leagues/${league_id}/draft/${round_id}`);
         },
         [league_id]
+    );
+
+    const navigateScoreboard = useCallback(
+        (round_id) => {
+            router.push(`/leagues/${league_id}/scoreboard/${round_id}`);
+        },
+        [league_id]
+    );
+
+    const items = useMemo(
+        () => [
+            {
+                title: 'Draft',
+                content: (
+                    <Table.Root>
+                        <Table.Header>
+                            <Table.Row>
+                                <Table.ColumnHeader>Round</Table.ColumnHeader>
+                                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                                <Table.ColumnHeader></Table.ColumnHeader>
+                            </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                            {rounds?.map((round) => (
+                                <Table.Row key={round.id}>
+                                    <Table.Cell>{mapRound(round.round)}</Table.Cell>
+                                    <Table.Cell>{round.status}</Table.Cell>
+                                    <Table.Cell w="40px">
+                                        {round.status === 'drafting' ? (
+                                            <Button onClick={() => navigateDraft(round.id)}>Draft</Button>
+                                        ) : null}
+                                    </Table.Cell>
+                                </Table.Row>
+                            ))}
+                        </Table.Body>
+                    </Table.Root>
+                )
+            },
+            {
+                title: 'Scoreboard',
+                content: (
+                    <Table.Root>
+                        <Table.Header>
+                            <Table.Row>
+                                <Table.ColumnHeader>Round</Table.ColumnHeader>
+                                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                                <Table.ColumnHeader>Scoreboard</Table.ColumnHeader>
+                            </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                            {rounds?.map((round) => (
+                                <Table.Row key={round.id}>
+                                    <Table.Cell>{mapRound(round.round)}</Table.Cell>
+                                    <Table.Cell>{round.status}</Table.Cell>
+                                    <Table.Cell w="40px">
+                                        {round.status === 'started' ? (
+                                            <Button onClick={() => navigateScoreboard(round.id)}>Scoreboard</Button>
+                                        ) : null}
+                                    </Table.Cell>
+                                </Table.Row>
+                            ))}
+                        </Table.Body>
+                    </Table.Root>
+                )
+            }
+        ],
+        [navigateDraft, navigateScoreboard, rounds]
     );
 
     if (!league) {
@@ -43,34 +111,35 @@ export default function League() {
                     </Button>
                 )}
             </HStack>
-            <Table.Root>
-                <Table.Header>
-                    <Table.Row>
-                        <Table.ColumnHeader>Round</Table.ColumnHeader>
-                        <Table.ColumnHeader>Status</Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
-                    </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                    {rounds?.map((round) => (
-                        <Table.Row key={round.id}>
-                            <Table.Cell>{mapRound(round.round)}</Table.Cell>
-                            <Table.Cell>{round.status}</Table.Cell>
-                            <Table.Cell w="40px">
-                                {round.status === 'started' ? (
-                                    <Button onClick={navigateDraft}>Scoreboard</Button>
-                                ) : null}
-                            </Table.Cell>
-                            <Table.Cell w="40px">
-                                {round.status === 'drafting' ? (
-                                    <Button onClick={() => navigateDraft(round.id)}>Draft</Button>
-                                ) : null}
-                            </Table.Cell>
-                        </Table.Row>
+            <Tabs.Root defaultValue="Draft" width="full">
+                <Tabs.List>
+                    {items.map((item, index) => (
+                        <Tabs.Trigger key={index} value={item.title}>
+                            {item.title}
+                        </Tabs.Trigger>
                     ))}
-                </Table.Body>
-            </Table.Root>
+                </Tabs.List>
+                <Box pos="relative" minH="200px" width="full">
+                    {items.map((item, index) => (
+                        <Tabs.Content
+                            key={index}
+                            value={item.title}
+                            position="absolute"
+                            inset="0"
+                            _open={{
+                                animationName: 'fade-in, scale-in',
+                                animationDuration: '300ms'
+                            }}
+                            _closed={{
+                                animationName: 'fade-out, scale-out',
+                                animationDuration: '120ms'
+                            }}
+                        >
+                            {item.content}
+                        </Tabs.Content>
+                    ))}
+                </Box>
+            </Tabs.Root>
         </Box>
     );
 }

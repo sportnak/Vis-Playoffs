@@ -5,6 +5,25 @@ export interface Member {
     status: 'pending' | 'accepted'
 }
 
+export interface Stats {
+    id: number
+    player_id: number
+    game_id: number
+    rec_yds: number		
+    rec: number
+    tar: number
+    rush_yds: number
+    rush_att: number
+    comp: number
+    pass_yds: number
+    pass_att: number
+    fum: number
+    int: number
+    rush_td: number
+    rec_td: number
+    pass_td: number
+}
+
 export interface Player {
     id: number,
     is_te: boolean,
@@ -14,6 +33,7 @@ export interface Player {
     name: string,
     team_id: number
     nfl_team: NFLTeam
+    stats?: Stats
 }
 
 export interface NFLTeam {
@@ -21,12 +41,22 @@ export interface NFLTeam {
     name: string
 }
 
+export interface Team {
+    id: number
+    name: string,
+    pool_id: number,
+    member_id: number,
+    team_players: TeamPlayer[]
+}
+
 export interface TeamPlayer {
     id: number,
     player_id: number,
     team_id: number
     pool_id: number
+    team: Team
     player: Player
+    score: number
 }
 
 export interface Pool {

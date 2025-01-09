@@ -1,5 +1,6 @@
 import { loadMembers, loadPools, loadRounds, loadTeams } from "@/actions/league";
 import { useAppSelector, useAppDispatch } from "@/app/hooks";
+import { Team, TeamPlayer } from "@/app/types";
 import { setMembers, setRounds } from "@/store/leagueSlice";
 import { useCallback, useEffect, useState } from "react";
 
@@ -62,9 +63,12 @@ export function usePools(league_id: number, round_id: number) {
 }
 
 export function useTeams(pool_ids: number[]) {
-    const [teams, setTeams] = useState([])
+    const [teams, setTeams] = useState<Team[]>([])
 
     const load = useCallback(async() => {
+        if (!pool_ids?.filter(x => x).length) {
+            return
+        }
         const response = await loadTeams({ pool_ids });
         setTeams(response.data);
     }, [pool_ids, ])
