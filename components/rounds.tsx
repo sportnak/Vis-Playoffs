@@ -306,7 +306,7 @@ function Pools({ round, onClose, leagueId }: { leagueId: number; round: NFLRound
                 <Table.Body>
                     {members?.map((member, index) => {
                         const team = teams?.find((team) => team.member_id === member.id);
-                        const pool = pools?.find((pool) => pool.id === team?.pool_id);
+                        const pool = pools?.find((pool) => pool.draft_order.includes(team?.id));
                         return (
                             <Table.Row key={index}>
                                 <Table.Cell>{member.email}</Table.Cell>

@@ -1,27 +1,24 @@
 'use client';
 import { useLeague, useUser } from '@/app/hooks';
 import { Box, Center, Heading, HStack, Input, Tabs, Text } from '@chakra-ui/react';
-import { useParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DraftTable from '@/components/draft-table';
-import { useDraft } from '../hooks';
 import Teams from '@/components/teams';
 import { toaster } from '@/components/ui/toaster';
 import Link from 'next/link';
+import { useDraft } from '@/app/leagues/[league_id]/draft/hooks';
 
-const LeagueView = () => {
-    const { league_id: leagueId, round: roundId } = useParams();
+export function Draft({ leagueId, roundId }) {
     const { league } = useLeague(leagueId.toString());
-    const { league_id, round: round_id } = useParams();
     const { user } = useUser();
     const { member, pool, draftPlayer, refreshDraft, teams, rounds, updateName, team } = useDraft(
-        parseInt(league_id as string),
-        parseInt(round_id as string),
+        league?.id,
+        parseInt(roundId as string),
         user
     );
     const currentRound = useMemo(() => {
-        return rounds?.find((round) => round.id === parseInt(round_id as string));
-    }, [rounds, round_id]);
+        return rounds?.find((round) => round.id === parseInt(roundId as string));
+    }, [rounds, roundId]);
 
     const [teamName, setTeamName] = useState('');
     useEffect(() => {
@@ -63,24 +60,9 @@ const LeagueView = () => {
     }
 
     return (
-        <Box w={'100%'} mx={'auto'} p={5}>
-            <HStack pb="20px" justifyContent={'space-between'}>
-                <Link href={`/leagues/${league.id}`}>
-                    <Heading as="h2" size="lg">
-                        {'< '}
-                        {league.name}
-                    </Heading>
-                </Link>
-                <Input
-                    style={{ borderColor: 'gray' }}
-                    value={teamName}
-                    onChange={handleNameChange}
-                    w="250px"
-                    placeholder="Name"
-                />
-            </HStack>
+        <Box w={'100%'} mx={'auto'}>
             <HStack w="100%" alignItems={'flex-start'} gap={8}>
-                <Box flex="2" h="100vh">
+                <Box flex="2">
                     <Teams
                         pool={pool}
                         dropPlayer={handleDropPlayer}
@@ -89,9 +71,9 @@ const LeagueView = () => {
                         memberId={member?.id}
                     />
                 </Box>
-                <Box flex="5">
+                <Box flex="5" p="20px" bg="rgba(255, 255, 255, 0.5)" boxShadow="md" borderRadius="6px" h="100%">
                     <DraftTable
-                        roundId={round_id}
+                        roundId={roundId}
                         pool={pool}
                         teams={teams}
                         team={team}
@@ -103,6 +85,4 @@ const LeagueView = () => {
             </HStack>
         </Box>
     );
-};
-
-export default LeagueView;
+}

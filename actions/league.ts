@@ -1,6 +1,6 @@
 'use server';
 
-import { Member, Player, Pool, RoundSettings, Stats, TeamPlayer } from '@/app/types';
+import { Member, Player, Pool, RoundSettings, Stats, Team, TeamPlayer } from '@/app/types';
 import { createClient } from '@/utils/supabase/server';
 import { User } from '@supabase/supabase-js';
 import { uniqueNamesGenerator, Config, names, adjectives, colors, animals } from 'unique-names-generator';
@@ -113,20 +113,10 @@ export async function createPools(count: number, league_id: number, round_id: nu
 export async function loadTeams({ pool_ids }: { pool_ids: number[] }) {
     const client = await createClient();
 
-    const response = await client.from('team').select('*').in('pool_id', pool_ids);
-
-    const team_players = await client
-        .from('team_players')
-        .select('*, player(*)')
-        .in(
-            'team_id',
-            response.data.map((x) => x.id)
-        );
-
-    response.data.forEach((team) => {
-        team.team_players = team_players.data.filter((x) => x.team_id === team.id);
-    });
-    return response;
+    const pools_response = await client.from('pools').select('*').in('id', pool_ids);
+    const team_ids = pools_response.data.map((x) => x.draft_order);
+    const response = await client.from('team').select('*, team_players(*, player(*))').in('id', team_ids).in('team_players.pool_id', pool_ids);
+    return response.data
 }
 
 export async function assignPools({ members, pools }: { members: Member[]; pools: Pool[] }) {
@@ -134,30 +124,34 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
     const loops = members.length / pools.length;
     const cloned_members = JSON.parse(JSON.stringify(members));
     const pool_map: { [pool_id: number]: number[] } = {};
-    for (let i = 0; i < loops; i++) {
-        for (let j = 0; j < pools.length; j++) {
-            if (!cloned_members.length) {
-                continue;
-            }
-            const member_index = Math.floor(Math.random() * cloned_members.length);
-            const member = cloned_members[member_index];
-            cloned_members.splice(member_index, 1);
-            const r = await client
+    let existing = await client.from('team').select('*').eq('league_id', pools[0].league_id)
+    if (!existing.data.length) {
+        for (const member of members) {
+            await client
                 .from('team')
                 .insert({
                     member_id: member.id,
-                    pool_id: pools[j].id,
+                    league_id: pools[0].league_id,
                     name: uniqueNamesGenerator(nameConfig)
                 })
                 .select();
-            if (r.error) {
-                return r;
-            }
-            const team_id = r.data?.[0].id;
-            pool_map[pools[j].id] = [...(pool_map[pools[j].id] || []), team_id];
         }
+        existing = await client.from('team').select('*').eq('league_id', pools[0].league_id)
     }
 
+    const teams: Team[] = existing.data;
+    for (let i = 0; i < loops; i++) {
+        for (let j = 0; j < pools.length; j++) {
+            if (!teams.length) {
+                continue;
+            }
+            const team_index = Math.floor(Math.random() * teams.length);
+            const team = teams[team_index];
+            teams.splice(team_index, 1);
+            
+            pool_map[pools[j].id] = [...(pool_map[pools[j].id] || []), team.id];
+        }
+    }
     for (const pool of pools) {
         await client
             .from('pools')
@@ -169,10 +163,11 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
     }
 }
 
-export async function updateName(name: string, member_id: number, pool_id: number) {
+export async function updateName(name: string, team_id: number) {
     const client = await createClient();
-    const existing = await client.from('team').select('name').eq('id', member_id).eq('pool_id', pool_id);
-    if (existing.data[0]?.name === name) {
+    const existing = await client.from('team').select('name').eq('id', team_id);
+    console.log(team_id)
+    if (existing.data?.[0]?.name === name) {
         return;
     }
     const response = await client
@@ -180,8 +175,7 @@ export async function updateName(name: string, member_id: number, pool_id: numbe
         .update({
             name
         })
-        .eq('id', member_id)
-        .eq('pool_id', pool_id);
+        .eq('id', team_id)
     return response;
 }
 
@@ -250,14 +244,13 @@ export async function loadNFLPlayers(
     return response;
 }
 
-export async function loadPool(round_id: number, member_id: number) {
+export async function loadPool(round_id: number, league_id: number) {
     const client = await createClient();
     const response = await client
         .from('pools')
-        .select('*, team!team_pool_id_fkey(*)')
-        .not('team', 'is', null)
+        .select('*')
         .eq('round_id', round_id)
-        .eq('team.member_id', member_id);
+        .eq('league_id', league_id)
     return response;
 }
 
@@ -277,11 +270,13 @@ export async function loadMember(league_id: number, user: User) {
     return response;
 }
 
-export async function loadTeam(pool_id: number, member_id: number) {
+export async function loadTeam(league_id: number, member_id: number) {
     const client = await createClient();
-    const response = await client.from('team').select('*').eq('pool_id', pool_id).eq('member_id', member_id);
+    const response = await client.from('team').select('*').eq('league_id', league_id).eq('member_id', member_id);
     return response;
 }
+
+// export async function loadLeagueTeam()
 
 export async function loadTeamPlayers(pool_id: number) {
     const client = await createClient();
@@ -413,19 +408,25 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
     return false;
 }
 
-export async function loadPoints({ league_id, round_id }: { round_id: number; league_id: number }) {
+export async function loadPoints({ league_id, round_id }: { round_id?: number; league_id: number }) {
     const client = await createClient();
-    const round_settings = await client.from('round_settings').select('*').eq('round_id', round_id);
-    const pools = await client.from('pools').select('*').eq('round_id', round_id);
+    const request =  client.from('round_settings').select('*');
+    if (round_id != null) {
+        request.eq('round_id', round_id)
+    }
+    
+    const round_settings = await request
     const { data: teamsWithPlayers } = await client
         .from('team')
         .select('*, players:team_players(*, player(*))')
-        .in(
-            'pool_id',
-            pools.data.map((x) => x.id)
+        .eq(
+            'league_id',
+            league_id,
         );
+    
     const player_ids = teamsWithPlayers.map((x) => x.players.map((x) => x.player.id)).flat();
     const { data: stats } = await client.from('stats').select('*').in('player_id', player_ids);
+    console.log(round_settings.data[0])
     const teamsWithPlayersWithStats = teamsWithPlayers.map((team) => {
         return {
             ...team,
@@ -434,7 +435,7 @@ export async function loadPoints({ league_id, round_id }: { round_id: number; le
                 return {
                     ...player,
                     stats: player_stats,
-                    score: scorePlayer(player, player_stats, round_settings.data[0])
+                    score: scorePlayer(player, player_stats, round_settings.data[0]) ?? 0
                 };
             })
         };
@@ -446,20 +447,20 @@ export async function loadPoints({ league_id, round_id }: { round_id: number; le
 function scorePlayer(player: Player, stats: Stats, round_settings: RoundSettings) {
     let score = 0;
     if (player.is_qb || player.is_wr) {
-        score += round_settings.wr_ppr * stats.rec
+        score += round_settings.wr_ppr * (stats?.rec ?? 0)
     } else if (player.is_te) {
-        score += round_settings.te_ppr * stats.rec
+        score += round_settings.te_ppr * (stats?.rec ?? 0)
     } else if (player.is_rb) {
-        score += round_settings.rb_ppr * stats.rec
+        score += round_settings.rb_ppr * (stats?.rec ?? 0)
     }
 
-    score += round_settings.rec_yd * stats.rec_yds;
-    score += round_settings.rush_yd * stats.rush_yds;
-    score += round_settings.rush_td * stats.rush_td
-    score += round_settings.pass_td * stats.pass_td
-    score += round_settings.rec_td * stats.rec_td
-    score += round_settings.pass_yd * stats.pass_yds
-    score += round_settings.fum * stats.fum
-    score += round_settings.int * stats.int
+    score += round_settings.rec_yd * (stats?.rec_yds ?? 0)
+    score += round_settings.rush_yd * (stats?.rush_yds ?? 0)
+    score += round_settings.rush_td * (stats?.rush_td ?? 0)
+    score += round_settings.pass_td * (stats?.pass_td ?? 0)
+    score += round_settings.rec_td * (stats?.rec_td ?? 0)
+    score += round_settings.pass_yd * (stats?.pass_yds ?? 0)
+    score += round_settings.fum * (stats?.fum ?? 0)
+    score += round_settings.int * (stats?.int ?? 0)
     return score
 }

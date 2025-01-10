@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 
 export function Scoreboard({ league_id, round_id }) {
     const { teams, refresh } = usePoints(parseInt(league_id as string), round_id);
+    const { teams: teamSeason } = usePoints(parseInt(league_id as string));
     return (
         <Box>
             <Heading mb="20px">Scoreboard</Heading>
@@ -14,6 +15,7 @@ export function Scoreboard({ league_id, round_id }) {
                     <Table.Row>
                         <Table.ColumnHeader>Name</Table.ColumnHeader>
                         <Table.ColumnHeader>Points</Table.ColumnHeader>
+                        <Table.ColumnHeader>Season</Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
@@ -21,6 +23,7 @@ export function Scoreboard({ league_id, round_id }) {
                         <Table.Row key={team.id}>
                             <Table.Cell>{team.name}</Table.Cell>
                             <Table.Cell>{totalPoints(team)}</Table.Cell>
+                            <Table.Cell>{totalPoints(teamSeason.find((t) => t.id === team.id))}</Table.Cell>
                         </Table.Row>
                     ))}
                 </Table.Body>
@@ -30,5 +33,5 @@ export function Scoreboard({ league_id, round_id }) {
 }
 
 function totalPoints(team: Team) {
-    return team.team_players.reduce((acc, player) => acc + player.score, 0);
+    return team?.team_players.reduce((acc, player) => acc + player.score, 0) ?? 0;
 }

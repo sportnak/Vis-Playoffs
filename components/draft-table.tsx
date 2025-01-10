@@ -11,7 +11,9 @@ import {
     Center,
     Box,
     useDialog,
-    createListCollection
+    createListCollection,
+    Icon,
+    Spinner
 } from '@chakra-ui/react';
 import {
     DialogRoot,
@@ -32,6 +34,9 @@ import { Checkbox } from './ui/checkbox';
 import { mapPos } from '@/app/util';
 import { Member, Team } from '@/app/types';
 import { SelectContent, SelectItem, SelectLabel, SelectRoot, SelectTrigger, SelectValueText } from './ui/select';
+import { LuPencil } from 'react-icons/lu';
+import { InputGroup } from './ui/input-group';
+import { MdOutlineSearch } from 'react-icons/md';
 
 const positions = createListCollection({
     items: [
@@ -45,7 +50,7 @@ const positions = createListCollection({
     ]
 });
 
-export default function Draft({ roundId, pool, teams, member, draftPlayer, refreshDraft }) {
+export default function Draft({ roundId, pool, team, teams, member, draftPlayer, refreshDraft }) {
     const [query, setQuery] = useState({
         drafted: false,
         pos: '',
@@ -83,11 +88,10 @@ export default function Draft({ roundId, pool, teams, member, draftPlayer, refre
 
     useEffect(() => {
         if (!pool) return;
-        const team = pool.team.find((x) => x.member_id === member?.id);
         if (pool.current === team?.id) {
             setIsTurn(true);
         }
-    }, [member?.id, pool]);
+    }, [member?.id, pool, team]);
 
     const handleDraftPlayer = useCallback(
         async (player_id: number) => {
@@ -133,7 +137,9 @@ export default function Draft({ roundId, pool, teams, member, draftPlayer, refre
             </DialogRootProvider>
             <Flex direction={'column'}>
                 <HStack mb={5} w="100%" justifyContent="space-between">
-                    <Heading as="h2">Players</Heading>
+                    <Heading as="h2" fontWeight={100}>
+                        Players
+                    </Heading>
                     <HStack>
                         <SelectRoot
                             style={{ borderColor: 'gray', width: '150px', cursor: 'pointer' }}
@@ -162,33 +168,35 @@ export default function Draft({ roundId, pool, teams, member, draftPlayer, refre
                         >
                             Drafted
                         </Checkbox>
-                        <Input
-                            w="300px"
-                            variant="subtle"
-                            placeholder="Search..."
-                            value={query.name}
-                            onChange={handleNameChange}
-                        />
+                        <InputGroup
+                            endElement={
+                                <Icon fontSize="20px">
+                                    <MdOutlineSearch />
+                                </Icon>
+                            }
+                        >
+                            <Input
+                                w="300px"
+                                variant="subtle"
+                                placeholder="Search..."
+                                value={query.name}
+                                onChange={handleNameChange}
+                                style={{ background: 'rgba(169, 169, 169, 0.1)', fontSize: '14px' }}
+                            />
+                        </InputGroup>
                     </HStack>
                 </HStack>
                 {pool && currTurn && (
-                    <Center
-                        w="100%"
-                        p={4}
-                        border="1px solid gray"
-                        borderRadius="6px"
-                        bg="rgba(128, 128, 128, 0.5)"
-                        mb={5}
-                    >
-                        <Heading size={'md'} as="h5">
+                    <Center w="100%" p={4} boxShadow="sm" border="none" borderRadius="6px" bg="#e7f9e7" mb={5}>
+                        <Heading size={'md'} as="h5" fontWeight={300}>
                             {isTurn ? "It's your turn to pick!" : `Waiting on ${currTurn?.name}`}
                         </Heading>
                     </Center>
                 )}
 
-                <Table.Root>
+                <Table.Root background={'none'}>
                     <Table.Header>
-                        <Table.Row>
+                        <Table.Row background={'none'}>
                             <Table.ColumnHeader>Name</Table.ColumnHeader>
                             <Table.ColumnHeader>Team</Table.ColumnHeader>
                             <Table.ColumnHeader>Pos</Table.ColumnHeader>
@@ -196,41 +204,49 @@ export default function Draft({ roundId, pool, teams, member, draftPlayer, refre
                         </Table.Row>
                     </Table.Header>
                     <Table.Body>
-                        {nflPlayers?.map((player) => (
-                            <Table.Row key={player.id}>
-                                <Table.Cell>{player.name}</Table.Cell>
-                                <Table.Cell>{player.nfl_team.name}</Table.Cell>
-                                <Table.Cell>{mapPos(player)}</Table.Cell>
-                                <Table.Cell>
-                                    {player.team_players?.length !== 0 ? (
-                                        'Drafted'
-                                    ) : (
-                                        <Button
-                                            as="div"
-                                            disabled={!isTurn}
-                                            style={{
-                                                cursor: 'pointer',
-                                                transition: 'background-color 0.3s',
-                                                padding: '10px',
-                                                borderRadius: '8px'
-                                            }}
-                                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'green')}
-                                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '')}
-                                            onClick={() => {
-                                                if (!isTurn) {
-                                                    return;
-                                                }
+                        {!nflPlayers ? (
+                            <Spinner />
+                        ) : (
+                            nflPlayers?.map((player) => (
+                                <Table.Row background={'none'} key={player.id}>
+                                    <Table.Cell>{player.name}</Table.Cell>
+                                    <Table.Cell>{player.nfl_team.name}</Table.Cell>
+                                    <Table.Cell>{mapPos(player)}</Table.Cell>
+                                    <Table.Cell>
+                                        {player.team_players?.length !== 0 ? (
+                                            'Drafted'
+                                        ) : (
+                                            <Button
+                                                disabled={!isTurn}
+                                                as="div"
+                                                variant="ghost"
+                                                style={{
+                                                    background: '#3D4946',
+                                                    padding: '10px',
+                                                    borderRadius: '8px',
+                                                    height: '30px',
+                                                    width: '75px',
+                                                    color: 'white'
+                                                }}
+                                                _hover={{
+                                                    background: '#2482A6'
+                                                }}
+                                                onClick={() => {
+                                                    if (!isTurn) {
+                                                        return;
+                                                    }
 
-                                                setPlayerConfirmation(player);
-                                                dialog.setOpen(true);
-                                            }}
-                                        >
-                                            Draft
-                                        </Button>
-                                    )}
-                                </Table.Cell>
-                            </Table.Row>
-                        ))}
+                                                    setPlayerConfirmation(player);
+                                                    dialog.setOpen(true);
+                                                }}
+                                            >
+                                                Draft
+                                            </Button>
+                                        )}
+                                    </Table.Cell>
+                                </Table.Row>
+                            ))
+                        )}
                     </Table.Body>
                 </Table.Root>
             </Flex>

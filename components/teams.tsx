@@ -1,9 +1,10 @@
-import { Text, Box, createListCollection, HStack, VStack, Button } from '@chakra-ui/react';
+import { Text, Box, createListCollection, HStack, VStack, Button, Heading, Center } from '@chakra-ui/react';
 import { SelectContent, SelectItem, SelectLabel, SelectRoot, SelectTrigger, SelectValueText } from './ui/select';
 import { useEffect, useMemo, useState } from 'react';
 import { NFLRound, Player, Pool, RoundSettings, Team, TeamPlayer } from '@/app/types';
 import { toaster } from './ui/toaster';
 import { mapPos } from '@/app/util';
+import { Select } from './select';
 
 export default function Teams({
     teams,
@@ -23,22 +24,20 @@ export default function Teams({
             return;
         }
 
-        return createListCollection({
-            items: teams?.map((team) => {
-                return {
-                    value: team.id,
-                    label: team.name
-                };
-            })
+        return teams?.map((team) => {
+            return {
+                value: team.id.toString(),
+                label: team.name
+            };
         });
     }, [teams]);
     const [value, setValue] = useState<any>();
     useEffect(() => {
-        const teamId = teams?.find((team) => team.member_id === memberId)?.id;
-        if (!teamId) {
+        const team = teams?.find((team) => team.member_id === memberId);
+        if (!team) {
             return;
         }
-        setValue([teamId]);
+        setValue({ value: team.id, label: team.name });
     }, [memberId, teams]);
 
     const qbCount = useMemo(() => round?.round_settings[0]?.qb_count, [round]);
@@ -47,7 +46,7 @@ export default function Teams({
     const teCount = useMemo(() => round?.round_settings[0]?.te_count, [round]);
     const flexCount = useMemo(() => round?.round_settings[0]?.flex_count, [round]);
     const sfCount = useMemo(() => round?.round_settings[0]?.sf_count, [round]);
-    const team = useMemo(() => teams?.find((team) => team.id === value?.[0]), [teams, value]);
+    const team = useMemo(() => teams?.find((team) => team.id === value?.value), [teams, value]);
 
     const displayTeam = useMemo(() => {
         return createTeam(team, {
@@ -66,26 +65,13 @@ export default function Teams({
     }
 
     return (
-        <Box p="20px" border="1px solid gray" borderRadius="6px" h="100%">
-            <SelectRoot
-                style={{ borderColor: 'gray', marginBottom: '20px', cursor: 'pointer' }}
-                collection={teamSelect}
-                value={value}
-                onValueChange={(e) => setValue(e.value)}
-                variant="subtle"
-            >
-                <SelectLabel>Teams</SelectLabel>
-                <SelectTrigger style={{ borderColor: 'gray' }}>
-                    <SelectValueText placeholder="Select team" />
-                </SelectTrigger>
-                <SelectContent>
-                    {teamSelect?.items.map((team: any) => (
-                        <SelectItem cursor="pointer" item={team} key={team.value}>
-                            {team.label}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </SelectRoot>
+        <Box p="20px" bg="rgba(255, 255, 255, 0.5)" boxShadow="md" borderRadius="6px" h="100%">
+            <Heading fontWeight={300} pb={2}>
+                Team
+            </Heading>
+            <Box pb={2} w="100%">
+                {teamSelect && <Select items={teamSelect} value={value} onChange={(e) => setValue(e)} />}
+            </Box>
             {round?.round_settings && (
                 <VStack w="100%">
                     {Array.from({ length: qbCount }).map((_, index) => (
@@ -124,7 +110,7 @@ export default function Teams({
                         <PlayerItem
                             key={index}
                             player={displayTeam?.flexs?.[index]}
-                            position="FLEX"
+                            position="F"
                             dropPlayer={showDrop ? dropPlayer : null}
                         />
                     ))}
@@ -153,16 +139,28 @@ function PlayerItem({
 }) {
     return (
         <HStack w="100%">
-            <Box flex={1}>{position}</Box>
+            <Center
+                bg="linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)"
+                h="40px"
+                w="40px"
+                fontSize="12px"
+                borderRadius="20px"
+            >
+                {position}
+            </Center>
             {player ? (
                 <>
-                    <Text flex={4} textAlign={'left'}>
+                    <Text fontSize="12px" textAlign={'left'}>
                         {player.name}
                     </Text>
                     {dropPlayer && <Button onClick={() => dropPlayer(player.id)}>X</Button>}
                 </>
             ) : (
-                <Box flex={4} h={0.5} bg="gray" />
+                <Box>
+                    <Text color="gray.400" fontSize="12px" fontWeight={100}>
+                        None Drafted
+                    </Text>
+                </Box>
             )}
         </HStack>
     );

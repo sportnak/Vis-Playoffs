@@ -1,14 +1,19 @@
 'use client';
-import { useLeague, useUser } from '@/app/hooks';
+import { useAppSelector, useLeague, useLeagues, useUser } from '@/app/hooks';
 import { Box, Button, Center, DialogTrigger, Heading, HStack, Table, Tabs, Text } from '@chakra-ui/react';
-import { useParams, useRouter } from 'next/navigation';
-import React, { useCallback, useMemo } from 'react';
+import { redirect, useParams, useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { usePools, useRounds } from './manage/hooks';
 import { mapRound } from '@/utils';
 import { Scoreboard } from '@/components/scoreboard';
 import { useMember } from './draft/hooks';
+import { LeagueHeader } from '@/components/league-header';
+import Rounds from '@/components/rounds';
+import DraftTable from '@/components/draft-table';
+import { Draft } from '@/components/draft';
 
 export default function League() {
+    const app = useAppSelector((state) => state.app);
     const { league_id } = useParams();
     const { league } = useLeague(league_id as string);
     const { user } = useUser();
@@ -108,8 +113,36 @@ export default function League() {
         );
     }
 
+    if (app.tab === 'scoreboard') {
+        return (
+            <Box>
+                <LeagueHeader />
+                <Scoreboard league_id={league_id} round_id={app.round_id} />
+            </Box>
+        );
+    }
+
+    if (app.tab === 'manage') {
+        return (
+            <Box>
+                <LeagueHeader />
+                <Rounds rounds={rounds} leagueId={league?.id} />
+            </Box>
+        );
+    }
+
+    if (app.tab === 'draft') {
+        return (
+            <Box>
+                <LeagueHeader />
+                <Draft leagueId={league?.id} roundId={app.round_id} />
+            </Box>
+        );
+    }
+
     return (
-        <Box maxW={'1000px'} mx={'auto'} p={5}>
+        <Box>
+            <LeagueHeader />
             <HStack w="100%" justifyContent="space-between">
                 <Heading as="h2" size="lg" pb="20px">
                     {league.name}

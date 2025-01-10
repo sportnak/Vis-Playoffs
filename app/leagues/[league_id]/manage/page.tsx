@@ -15,7 +15,6 @@ export default function ManageLeague() {
 
     const { members } = useMembers(league?.id);
     const { rounds } = useRounds(league?.id);
-    console.log(rounds);
 
     const items = useMemo(
         () => [

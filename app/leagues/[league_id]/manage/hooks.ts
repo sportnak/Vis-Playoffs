@@ -71,7 +71,7 @@ export function useTeams(pool_ids: number[]) {
             return
         }
         const response = await loadTeams({ pool_ids });
-        setTeams(response.data);
+        setTeams(response);
     }, [pool_ids, ])
 
     useEffect(() => {

@@ -5,6 +5,7 @@ import { setMember, setPool, setTeam } from "@/store/draftSlice";
 import { User } from "@supabase/supabase-js";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useRounds, useTeams } from "../manage/hooks";
+import { Team } from "@/app/types";
 
 
 export function useNFLTeams() {
@@ -64,7 +65,7 @@ export function useDraft(league_id: number, round_id: number, user: User) {
         if (!team || !pool) {
             return
         }
-        return await updateName(name, team.id, pool.id);
+        return await updateName(name, team.id);
     }, [team, pool,])
 
     const load = useCallback(async() => {
@@ -77,10 +78,9 @@ export function useDraft(league_id: number, round_id: number, user: User) {
         dispatch(setMember(member));
 
         
-        const pool_response = await loadPool(round_id, member.id);
+        const pool_response = await loadPool(round_id, league_id);
         dispatch(setPool(pool_response.data[0]));
-        
-        const team = await loadTeam(pool_response.data[0]?.id, member.id)
+        const team = await loadTeam(league_id, member.id)
         dispatch(setTeam(team.data[0]))
     }, [league_id, round_id, user, dispatch]);
 
@@ -94,6 +94,7 @@ export function useDraft(league_id: number, round_id: number, user: User) {
     }, [pool, team, round_id, league_id]);
 
     return {
+        team,
         member,
         pool,
         draftPlayer: handleDraftPlayer,
@@ -121,6 +122,34 @@ export function usePool(round_id: number, member_id: number) {
 
     return {
         pool
+    }
+}
+
+export function useTeam( league_id: number, member_id) {
+    const [team, setTeam] = useState<Team>()
+
+    const handleUpdateName = useCallback(async (name: string) => {
+        if (!team?.id) {
+            return
+        }
+        return await updateName(name, team.id);
+    }, [team])
+
+    const load = useCallback(async() => {
+        if (!league_id || !member_id) {
+            return
+        }
+
+        const response = await loadTeam(league_id, member_id)
+        setTeam(response.data[0]);
+    }, [league_id, member_id])
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    return {
+        team, load, updateName: handleUpdateName
     }
 }
 
