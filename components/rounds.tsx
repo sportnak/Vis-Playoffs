@@ -100,14 +100,16 @@ function RoundSettings({ round, onClose, leagueId }: { leagueId: number; round: 
             }
         });
 
-        if (!has_errors) {
-            await upsertSettings({
-                id: round.round_settings[0]?.id,
-                round_id: round.id,
-                league_id: leagueId,
-                ...data
-            });
-        }
+        await upsertSettings({
+            id: round.round_settings[0]?.id,
+            round_id: round.id,
+            league_id: leagueId,
+            ...data
+        });
+        toaster.create({
+            type: 'success',
+            title: 'Settings Saved'
+        });
         // await inviteMember({ email: data.email, league_id });
     };
 

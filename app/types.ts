@@ -61,6 +61,7 @@ export interface TeamPlayer {
 
 export interface Pool {
     id: number,
+    status: 'drafting' | 'complete'
     league_id: number,
     round_id: number,
     name: string

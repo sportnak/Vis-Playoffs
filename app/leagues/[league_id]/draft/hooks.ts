@@ -58,7 +58,7 @@ export function useDraft(league_id: number, round_id: number, user: User) {
     const pool_id = useMemo(() => [pool?.id], [pool])
     const { teams } = useTeams(pool_id)
     const dispatch = useAppDispatch();
-    const { rounds } = useRounds()
+    const { rounds } = useRounds(league_id)
 
     const handleUpdateName = useCallback(async (name: string) => {
         if (!team || !pool) {
@@ -89,9 +89,9 @@ export function useDraft(league_id: number, round_id: number, user: User) {
     }, [load]);
 
     const handleDraftPlayer = useCallback(async (player_id: number) => {
-        const response = await draftPlayer(round_id, pool.id, team.id, player_id)
+        const response = await draftPlayer(league_id, round_id, pool.id, team.id, player_id)
         return response
-    }, [pool, team, round_id]);
+    }, [pool, team, round_id, league_id]);
 
     return {
         member,

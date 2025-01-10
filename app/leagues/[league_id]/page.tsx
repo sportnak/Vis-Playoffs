@@ -3,15 +3,17 @@ import { useLeague, useUser } from '@/app/hooks';
 import { Box, Button, Center, DialogTrigger, Heading, HStack, Table, Tabs, Text } from '@chakra-ui/react';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useCallback, useMemo } from 'react';
-import { useRounds } from './manage/hooks';
+import { usePools, useRounds } from './manage/hooks';
 import { mapRound } from '@/utils';
 import { Scoreboard } from '@/components/scoreboard';
+import { useMember } from './draft/hooks';
 
 export default function League() {
     const { league_id } = useParams();
     const { league } = useLeague(league_id as string);
     const { user } = useUser();
-    const { rounds } = useRounds();
+    const { rounds } = useRounds(league?.id);
+    const { pools } = usePools(league?.id);
 
     const router = useRouter();
 
@@ -30,7 +32,6 @@ export default function League() {
         },
         [league_id]
     );
-
     const items = useMemo(
         () => [
             {
@@ -50,8 +51,16 @@ export default function League() {
                                     <Table.Cell>{mapRound(round.round)}</Table.Cell>
                                     <Table.Cell>{round.status}</Table.Cell>
                                     <Table.Cell w="40px">
-                                        {round.status === 'drafting' ? (
-                                            <Button onClick={() => navigateDraft(round.id)}>Draft</Button>
+                                        {round.status !== 'pending' ? (
+                                            <Button
+                                                disabled={
+                                                    round.round_settings.length === 0 ||
+                                                    pools.filter((x) => x.round_id === round.id).length === 0
+                                                }
+                                                onClick={() => navigateDraft(round.id)}
+                                            >
+                                                Draft
+                                            </Button>
                                         ) : null}
                                     </Table.Cell>
                                 </Table.Row>
@@ -88,7 +97,7 @@ export default function League() {
                 )
             }
         ],
-        [navigateDraft, navigateScoreboard, rounds]
+        [navigateDraft, navigateScoreboard, rounds, pools]
     );
 
     if (!league) {

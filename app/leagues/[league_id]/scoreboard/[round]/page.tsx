@@ -11,7 +11,7 @@ const LeagueView = () => {
     const { league_id: leagueId, round: roundId } = useParams();
     const { league } = useLeague(leagueId.toString());
     const { user } = useUser();
-    const { rounds } = useRounds();
+    const { rounds } = useRounds(parseInt(leagueId as string));
     const currentRound = useMemo(() => {
         return rounds?.find((round) => round.id === parseInt(roundId as string));
     }, [rounds, roundId]);

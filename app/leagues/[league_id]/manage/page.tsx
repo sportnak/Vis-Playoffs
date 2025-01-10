@@ -14,7 +14,8 @@ export default function ManageLeague() {
     const router = useRouter();
 
     const { members } = useMembers(league?.id);
-    const { rounds } = useRounds();
+    const { rounds } = useRounds(league?.id);
+    console.log(rounds);
 
     const items = useMemo(
         () => [

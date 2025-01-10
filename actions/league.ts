@@ -16,14 +16,29 @@ const nameConfig: Config = {
     separator: ' ',
     style: 'capital'
 };
-export async function loadLeagues() {
+export async function loadLeagues(user: User) {
     const client = await createClient();
-    const response = await client.from('league').select('*');
+    const members = await client.from('league_members').select('*').eq('email', user?.email);
+    const response = await client.from('league').select('*').or(`id.in.(${members.data.map((x) => x.league_id)}), admin_id.eq.${user.id}`);
+    return response;
+}
+
+export async function removeMember({ email, league_id }: { email: string; league_id: number }) {
+    const client = await createClient();
+    const response = await client.from('league_members').delete().eq('email', email).eq('league_id', league_id);
     return response;
 }
 
 export async function inviteMember({ email, league_id }: { email: string; league_id: number }) {
     const client = await createClient();
+    const existing = await client.from('league_members').select('id').eq('email', email).eq('league_id', league_id);
+    if (existing.data[0]) {
+        return {
+            error: {
+                message: 'Member Already Exists'
+            }
+        };
+    }
     const response = await client.from('league_members').insert({ email, league_id });
     return response;
 }
@@ -34,9 +49,9 @@ export async function loadMembers({ league_id }: { league_id: number }) {
     return response;
 }
 
-export async function loadRounds() {
+export async function loadRounds(league_id: number) {
     const client = await createClient();
-    const response = await client.from('nfl_rounds').select('*, round_settings(*)');
+    const response = await client.from('nfl_rounds').select('*, round_settings(*)').eq('round_settings.league_id', league_id);
     return response;
 }
 
@@ -68,14 +83,18 @@ export async function upsertSettings(data: RoundSettings) {
             onConflict: 'round_id, league_id'
         }
     );
-
+    console.log(response)
     return response;
 }
 
 export async function loadPools({ league_id, round_id }: { league_id: number; round_id: number }) {
     const client = await createClient();
-    const response = await client.from('pools').select('*').eq('round_id', round_id).eq('league_id', league_id);
-    return response;
+    const request = client.from('pools').select('*').eq('league_id', league_id);
+    if (round_id) {
+        request.eq('round_id', round_id)
+    }
+
+    return await request;
 }
 
 export async function createPools(count: number, league_id: number, round_id: number) {
@@ -242,9 +261,19 @@ export async function loadPool(round_id: number, member_id: number) {
     return response;
 }
 
+export async function resetPools(league_id: number) {
+    const client = await createClient();
+    const response = await client.from('pools').delete().eq('league_id', league_id);
+    return response;
+}
+
 export async function loadMember(league_id: number, user: User) {
     const client = await createClient();
     const response = await client.from('league_members').select('*').eq('league_id', league_id).eq('email', user.email);
+
+    if (response.data?.[0] && response.data?.[0]?.user_id == null) {
+        await client.from('league_members').update({ user_id: user.id }).eq('id', response.data?.[0].id)
+    }
     return response;
 }
 
@@ -260,11 +289,11 @@ export async function loadTeamPlayers(pool_id: number) {
     return response;
 }
 
-export async function draftPlayer(round_id: number, pool_id: number, team_id: number, player_id: number) {
+export async function draftPlayer(league_id: number, round_id: number, pool_id: number, team_id: number, player_id: number) {
     const client = await createClient();
     const player = await client.from('player').select('*').eq('id', player_id);
     const team = await client.from('team_players').select('*, player(*)').eq('team_id', team_id);
-    const settings = await client.from('round_settings').select('*').eq('round_id', round_id);
+    const settings = await client.from('round_settings').select('*').eq('round_id', round_id).eq('league_id', league_id);
     const pool = await client.from('pools').select('*').eq('id', pool_id);
     if (pool.data[0].current !== team_id) {
         return {
@@ -272,6 +301,14 @@ export async function draftPlayer(round_id: number, pool_id: number, team_id: nu
                 message: 'Its not your turn to pick'
             }
         };
+    }
+
+    if(!settings.data[0]) {
+        return {
+            error: {
+                message: 'Round not configured by commish yet.'
+            }
+        }
     }
 
     if (!isPickValid(player.data[0], settings.data[0], team.data)) {
@@ -292,6 +329,11 @@ export async function draftPlayer(round_id: number, pool_id: number, team_id: nu
         const next = pool.data[0].draft_order;
         const curr_index = next.findIndex((x) => x === team_id);
         const next_index = curr_index === next.length - 1 ? 0 : curr_index + 1;
+        const next_team_count = (await client.from('team_players').select('*').eq('pool_id', pool_id).eq('team_id', next[next_index])).count ?? 0;
+        if (settings.data[0].max_team_size === next_team_count) {
+            await client.from('pools').update({ current: null, status: 'complete' }).eq('id', pool_id);
+            return response
+        }
         const res = await client.from('pools').update({ current: next[next_index] }).eq('id', pool_id);
         if (res.error) {
             return res;
@@ -346,8 +388,17 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
     }
 
     let sf_spots = round_settings.sf_count;
+    console.log(sf_spots, flex_spots, round_settings.flex_count, round_settings.rb_count, rb_spots, te_spots, wr_spots )
     if (flex_spots < 0) {
         sf_spots = sf_spots + flex_spots;
+    }
+
+    if (qb_spots < 0) {
+        sf_spots = sf_spots + qb_spots;
+    }
+
+    if (sf_spots > 0) {
+        return true
     }
 
     if (qb_spots < 0) {

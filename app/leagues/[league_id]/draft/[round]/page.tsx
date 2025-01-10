@@ -33,12 +33,15 @@ const LeagueView = () => {
         setTeamName(e.target.value);
     }, []);
 
+    const handleDropPlayer = useCallback((player_id: number) => {
+        window.alert('Dropping' + player_id);
+    }, []);
+
     const db = useRef(null);
     useEffect(() => {
         if (db.current) {
             clearTimeout(db.current);
         }
-        console.log('sdlk', teamName);
 
         db.current = setTimeout(async () => {
             const res = await updateName(teamName);
@@ -77,9 +80,14 @@ const LeagueView = () => {
                 />
             </HStack>
             <HStack w="100%" alignItems={'flex-start'} gap={8}>
-                {/* <Teams /> */}
                 <Box flex="2" h="100vh">
-                    <Teams teams={teams} round={currentRound} memberId={member?.id} />
+                    <Teams
+                        pool={pool}
+                        dropPlayer={handleDropPlayer}
+                        teams={teams}
+                        round={currentRound}
+                        memberId={member?.id}
+                    />
                 </Box>
                 <Box flex="5">
                     <DraftTable

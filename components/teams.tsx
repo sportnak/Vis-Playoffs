@@ -1,11 +1,23 @@
-import { Text, Box, createListCollection, HStack, VStack } from '@chakra-ui/react';
+import { Text, Box, createListCollection, HStack, VStack, Button } from '@chakra-ui/react';
 import { SelectContent, SelectItem, SelectLabel, SelectRoot, SelectTrigger, SelectValueText } from './ui/select';
 import { useEffect, useMemo, useState } from 'react';
-import { NFLRound, Player, RoundSettings, Team, TeamPlayer } from '@/app/types';
+import { NFLRound, Player, Pool, RoundSettings, Team, TeamPlayer } from '@/app/types';
 import { toaster } from './ui/toaster';
 import { mapPos } from '@/app/util';
 
-export default function Teams({ teams, round, memberId }: { memberId: number; teams: Team[]; round: NFLRound }) {
+export default function Teams({
+    teams,
+    round,
+    memberId,
+    dropPlayer,
+    pool
+}: {
+    pool: Pool;
+    memberId: number;
+    teams: Team[];
+    round: NFLRound;
+    dropPlayer: (player_id: number) => void;
+}) {
     const teamSelect = useMemo(() => {
         if (!teams) {
             return;
@@ -31,13 +43,13 @@ export default function Teams({ teams, round, memberId }: { memberId: number; te
 
     const qbCount = useMemo(() => round?.round_settings[0]?.qb_count, [round]);
     const wrCount = useMemo(() => round?.round_settings[0]?.wr_count, [round]);
-    const rbCount = useMemo(() => round?.round_settings[0]?.wr_count, [round]);
+    const rbCount = useMemo(() => round?.round_settings[0]?.rb_count, [round]);
     const teCount = useMemo(() => round?.round_settings[0]?.te_count, [round]);
     const flexCount = useMemo(() => round?.round_settings[0]?.flex_count, [round]);
     const sfCount = useMemo(() => round?.round_settings[0]?.sf_count, [round]);
+    const team = useMemo(() => teams?.find((team) => team.id === value?.[0]), [teams, value]);
 
     const displayTeam = useMemo(() => {
-        const team = teams?.find((team) => team.id === value?.[0]);
         return createTeam(team, {
             qbCount,
             wrCount,
@@ -47,8 +59,9 @@ export default function Teams({ teams, round, memberId }: { memberId: number; te
             sfCount
         });
     }, [qbCount, wrCount, rbCount, teCount, flexCount, teams, sfCount, value]);
+    const showDrop = team?.member_id === memberId && pool?.status === 'complete';
 
-    if (!teams?.length) {
+    if (!teams?.length || !pool) {
         return;
     }
 
@@ -73,38 +86,81 @@ export default function Teams({ teams, round, memberId }: { memberId: number; te
                     ))}
                 </SelectContent>
             </SelectRoot>
-            <VStack w="100%">
-                {Array.from({ length: qbCount }).map((_, index) => (
-                    <PlayerItem key={index} player={displayTeam?.qbs?.[index]} position="QB" />
-                ))}
-                {Array.from({ length: rbCount }).map((_, index) => (
-                    <PlayerItem key={index} player={displayTeam?.rbs?.[index]} position="RB" />
-                ))}
-                {Array.from({ length: wrCount }).map((_, index) => (
-                    <PlayerItem key={index} player={displayTeam?.wrs?.[index]} position="WR" />
-                ))}
-                {Array.from({ length: teCount }).map((_, index) => (
-                    <PlayerItem key={index} player={displayTeam?.tes?.[index]} position="TE" />
-                ))}
-                {Array.from({ length: flexCount }).map((_, index) => (
-                    <PlayerItem key={index} player={displayTeam?.flexs?.[index]} position="FLEX" />
-                ))}
-                {Array.from({ length: sfCount }).map((_, index) => (
-                    <PlayerItem key={index} player={displayTeam?.sfs?.[index]} position="SF" />
-                ))}
-            </VStack>
+            {round?.round_settings && (
+                <VStack w="100%">
+                    {Array.from({ length: qbCount }).map((_, index) => (
+                        <PlayerItem
+                            key={index}
+                            player={displayTeam?.qbs?.[index]}
+                            position="QB"
+                            dropPlayer={showDrop ? dropPlayer : null}
+                        />
+                    ))}
+                    {Array.from({ length: rbCount }).map((_, index) => (
+                        <PlayerItem
+                            key={index}
+                            player={displayTeam?.rbs?.[index]}
+                            position="RB"
+                            dropPlayer={showDrop ? dropPlayer : null}
+                        />
+                    ))}
+                    {Array.from({ length: wrCount }).map((_, index) => (
+                        <PlayerItem
+                            key={index}
+                            player={displayTeam?.wrs?.[index]}
+                            position="WR"
+                            dropPlayer={showDrop ? dropPlayer : null}
+                        />
+                    ))}
+                    {Array.from({ length: teCount }).map((_, index) => (
+                        <PlayerItem
+                            key={index}
+                            player={displayTeam?.tes?.[index]}
+                            position="TE"
+                            dropPlayer={showDrop ? dropPlayer : null}
+                        />
+                    ))}
+                    {Array.from({ length: flexCount }).map((_, index) => (
+                        <PlayerItem
+                            key={index}
+                            player={displayTeam?.flexs?.[index]}
+                            position="FLEX"
+                            dropPlayer={showDrop ? dropPlayer : null}
+                        />
+                    ))}
+                    {Array.from({ length: sfCount }).map((_, index) => (
+                        <PlayerItem
+                            key={index}
+                            player={displayTeam?.sfs?.[index]}
+                            position="SF"
+                            dropPlayer={showDrop ? dropPlayer : null}
+                        />
+                    ))}
+                </VStack>
+            )}
         </Box>
     );
 }
 
-function PlayerItem({ player, position }: { player?: Player; position: string }) {
+function PlayerItem({
+    player,
+    position,
+    dropPlayer
+}: {
+    dropPlayer: (player_id) => void;
+    player?: Player;
+    position: string;
+}) {
     return (
         <HStack w="100%">
             <Box flex={1}>{position}</Box>
             {player ? (
-                <Text flex={4} textAlign={'left'}>
-                    {player.name}
-                </Text>
+                <>
+                    <Text flex={4} textAlign={'left'}>
+                        {player.name}
+                    </Text>
+                    {dropPlayer && <Button onClick={() => dropPlayer(player.id)}>X</Button>}
+                </>
             ) : (
                 <Box flex={4} h={0.5} bg="gray" />
             )}
@@ -120,12 +176,12 @@ function createTeam(team: Team, counts) {
     const flexs = [];
     const sfs = [];
 
-    if (!team) {
+    console.log(counts);
+    if (!team || !counts.qbCount) {
         return {};
     }
 
     for (const player of team.team_players) {
-        console.log(player.player.name);
         if (player.player.is_qb) {
             if (qbs.length < counts.qbCount) {
                 qbs.push(player.player);

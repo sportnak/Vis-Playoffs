@@ -22,28 +22,29 @@ export function useMembers(league_id: number) {
   return { members, load}
 }
 
-export function useRounds() {
+export function useRounds(league_id: number) {
     const rounds = useAppSelector((state) => state.league.rounds);
     const dispatch = useAppDispatch();
 
     useEffect(() => {
-        if (rounds != null ) {
+        if (rounds != null || league_id == null) {
             return;
         }
 
         async function load() {
-            const response = await loadRounds();
+            const response = await loadRounds(league_id);
+            console.log(response)
             dispatch(setRounds(response.data));
         }
 
         load();
-    }, []);
+    }, [league_id]);
 
   return { rounds }
 
 }
 
-export function usePools(league_id: number, round_id: number) {
+export function usePools(league_id: number, round_id?: number) {
     const [pools, setPools] = useState([])
 
     const load = useCallback(async() => {
@@ -57,7 +58,7 @@ export function usePools(league_id: number, round_id: number) {
         }
 
         load();
-    }, [league_id]);
+    }, [league_id, round_id]);
 
   return { pools, load }
 }

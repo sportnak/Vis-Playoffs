@@ -43,20 +43,22 @@ export function useLeague(league_id: string) {
 export function useLeagues(): { leagues: any} {
     const leagues = useAppSelector((state) => state.leagues.leagues);
     const dispatch = useAppDispatch();
+    const {user} = useUser()
 
 
     useEffect(() => {
-        if (leagues != null) {
+        if (leagues != null || user == null) {
             return;
         }
+        console.log(leagues, user)
 
         async function load() {
-            const response = await loadLeagues();
+            const response = await loadLeagues(user);
             dispatch(setLeagues(response.data));
         }
 
         load();
-    }, [leagues]);
+    }, [leagues, user]);
 
   return { leagues }
 }
