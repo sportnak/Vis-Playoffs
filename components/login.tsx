@@ -25,7 +25,7 @@ export function LoginComponent({ toggleComponent }) {
     };
 
     return (
-        <Box maxW="md" mx="auto" mt={10} p={5} borderWidth={1} borderRadius="lg">
+        <Box maxW="md" mx="auto" mt={10} p={5} background="rgba(255, 255, 255, 0.3)" boxShadow={'md'} borderRadius="lg">
             <Heading as="h2" size="lg" textAlign="center" mb={5}>
                 Login
             </Heading>
@@ -69,7 +69,7 @@ export function RegisterComponent({ toggleComponent }) {
     }, []);
 
     return (
-        <Box maxW="md" mx="auto" mt={10} p={5} borderWidth={1} borderRadius="lg">
+        <Box background="rgba(255, 255, 255, 0.3)" boxShadow={'md'} maxW="md" mx="auto" mt={10} p={5} borderRadius="lg">
             <form onSubmit={handleSubmit(handleRegister)}>
                 <Fieldset.Root>
                     <Fieldset.Legend as="h2" textAlign="center" mb={5}>
