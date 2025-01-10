@@ -19,14 +19,14 @@ import teams from './teams';
 import { toaster } from './ui/toaster';
 import { useMember, useTeam } from '@/app/leagues/[league_id]/draft/hooks';
 import { useParams } from 'next/navigation';
-import { useAppDispatch, useAppSelector, useLeague, useUser } from '@/app/hooks';
+import { useApp, useAppDispatch, useAppSelector, useLeague, useUser } from '@/app/hooks';
 import { useRounds } from '@/app/leagues/[league_id]/manage/hooks';
 import { InputGroup } from './ui/input-group';
 import { BiChevronDown } from 'react-icons/bi';
 import { Select } from './select';
 import { PiPencil } from 'react-icons/pi';
 import { LuPencil } from 'react-icons/lu';
-import { setRoundId, setTab } from '@/store/appSlice';
+import { setRoundId, setTab, setTeamName } from '@/store/appSlice';
 
 const roundItems = {
     items: [
@@ -46,44 +46,35 @@ const roundItems = {
 };
 
 export function LeagueHeader() {
-    const app = useAppSelector((state) => state.app);
-    const dispatch = useAppDispatch();
     const { league_id } = useParams();
-    const { user } = useUser();
-    const { member } = useMember(parseInt(league_id as string), user);
-    const { team, updateName, load: refreshTeam } = useTeam(parseInt(league_id as string), member?.id);
-    const { rounds } = useRounds(parseInt(league_id as string));
-    const [teamName, setTeamName] = useState('');
+    const { tab, user, teamName, team } = useAppSelector((state) => state.app);
+    const dispatch = useAppDispatch();
     const { league } = useLeague(league_id as string);
     const [selectedRoundId, setValue] = useState('2');
 
-    const handleTabChange = useCallback((val: string) => {
-        dispatch(setTab(val));
+    const changeTab = useCallback((tab: string) => {
+        dispatch(setTab(tab));
     }, []);
 
-    const handleRoundChange = useCallback((val: string) => {
-        dispatch(setRoundId(val));
+    const changeRound = useCallback((round_id: number) => {
+        dispatch(setRoundId(round_id));
     }, []);
-
     useEffect(() => {
-        handleRoundChange(selectedRoundId);
+        changeRound(parseInt(selectedRoundId));
     }, [selectedRoundId]);
 
+    const [localName, setLocalName] = useState(teamName);
     useEffect(() => {
-        if (!team?.name) {
-            return;
-        }
-        const teamName = team?.name;
-        setTeamName(teamName);
-    }, [team, member]);
+        setLocalName(teamName);
+    }, [teamName]);
 
     const handleNameChange = useCallback((e) => {
-        setTeamName(e.target.value);
+        setLocalName(e.target.value);
     }, []);
 
     const db = useRef(null);
     useEffect(() => {
-        if (!teamName?.length) {
+        if (!localName?.length || localName === team?.name) {
             return;
         }
         if (db.current) {
@@ -91,16 +82,16 @@ export function LeagueHeader() {
         }
 
         db.current = setTimeout(async () => {
-            const res = await updateName(teamName);
+            const res = await updateName(localName, team?.id);
+            dispatch(setTeamName(localName));
             if (res && !res.error) {
                 toaster.create({
                     type: 'success',
                     title: 'Team name updated'
                 });
-                refreshTeam();
             }
         }, 500);
-    }, [teamName, updateName]);
+    }, [localName, updateName]);
 
     return (
         <HStack
@@ -126,26 +117,9 @@ export function LeagueHeader() {
                     _hover={{
                         textDecoration: 'underline'
                     }}
-                    onClick={() => handleTabChange('team')}
+                    onClick={() => changeTab('scoreboard')}
                     style={
-                        app.tab === 'team'
-                            ? {
-                                  fontWeight: 'bold',
-                                  textDecoration: 'underline'
-                              }
-                            : null
-                    }
-                >
-                    Team
-                </Button>
-                <Button
-                    variant="plain"
-                    _hover={{
-                        textDecoration: 'underline'
-                    }}
-                    onClick={() => handleTabChange('scoreboard')}
-                    style={
-                        app.tab === 'scoreboard'
+                        tab === 'scoreboard'
                             ? {
                                   fontWeight: 'bold',
                                   textDecoration: 'underline'
@@ -156,11 +130,11 @@ export function LeagueHeader() {
                     Scoreboard
                 </Button>
                 <Button
-                    onClick={() => handleTabChange('draft')}
+                    onClick={() => changeTab('draft')}
                     variant="plain"
                     _hover={{ textDecoration: 'underline' }}
                     style={
-                        app.tab === 'draft'
+                        tab === 'draft'
                             ? {
                                   fontWeight: 'bold',
                                   textDecoration: 'underline'
@@ -172,11 +146,11 @@ export function LeagueHeader() {
                 </Button>
                 {league?.admin_id === user?.id && (
                     <Button
-                        onClick={() => handleTabChange('manage')}
+                        onClick={() => changeTab('manage')}
                         variant="plain"
                         _hover={{ textDecoration: 'underline' }}
                         style={
-                            app.tab === 'manage'
+                            tab === 'manage'
                                 ? {
                                       fontWeight: 'bold',
                                       textDecoration: 'underline'
@@ -199,7 +173,7 @@ export function LeagueHeader() {
                     <Input
                         variant="subtle"
                         style={{ background: 'rgba(169, 169, 169, 0.1)', fontSize: '14px' }}
-                        value={teamName}
+                        value={localName}
                         onChange={handleNameChange}
                         w="250px"
                         placeholder="Name"

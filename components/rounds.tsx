@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { assignPools, createPools, upsertSettings } from '@/actions/league';
 import { mapRound } from '@/utils';
-import { useMembers, usePools, useTeams } from '@/app/leagues/[league_id]/manage/hooks';
+import { useMembers, usePools, useRounds, useTeams } from '@/app/leagues/[league_id]/manage/hooks';
 import {
     DialogRoot,
     DialogActionTrigger,
@@ -18,60 +18,84 @@ import {
     DialogTrigger
 } from './ui/dialog';
 import { toaster } from './ui/toaster';
+import { useAppSelector } from '@/app/hooks';
 
 export default function Rounds({ leagueId, rounds }: { leagueId: number; rounds: NFLRound[] }) {
+    const league = useAppSelector((state) => state.app.league);
+    const { refresh: refreshRounds } = useRounds(league?.id);
+    const members = league?.league_members;
     const [selectedRound, setSelectedRound] = useState<NFLRound | null>(null);
-    const [selectedRoundPool, setSelectedRoundPool] = useState<NFLRound | null>(null);
     const handleSelectRound = useCallback((round: NFLRound) => {
         setSelectedRound(round);
     }, []);
-    const handleSelectRoundPool = useCallback((round: NFLRound) => {
-        setSelectedRoundPool(round);
+
+    const handlePoolGeneration = useCallback(async () => {
+        refreshRounds();
     }, []);
 
     if (selectedRound) {
         return <RoundSettings leagueId={leagueId} round={selectedRound} onClose={() => setSelectedRound(null)} />;
     }
 
-    if (selectedRoundPool) {
-        return <Pools leagueId={leagueId} round={selectedRoundPool} onClose={() => setSelectedRoundPool(null)} />;
-    }
-
     return (
-        <Table.Root width="100%">
-            <Table.Header>
-                <Table.Row>
-                    <Table.ColumnHeader>Round</Table.ColumnHeader>
-                    <Table.ColumnHeader>Year</Table.ColumnHeader>
-                    <Table.ColumnHeader>Status</Table.ColumnHeader>
-                    <Table.ColumnHeader>Pools</Table.ColumnHeader>
-                    <Table.ColumnHeader>Settings</Table.ColumnHeader>
-                </Table.Row>
-            </Table.Header>
-            <Table.Body>
-                {rounds?.map((round, index) => (
-                    <Table.Row key={index}>
-                        <Table.Cell>{mapRound(round.round)}</Table.Cell>
-                        <Table.Cell>{round.year}</Table.Cell>
-                        <Table.Cell>{round.status}</Table.Cell>
-                        <Table.Cell>
-                            <Button aria-label="Settings" variant="plain" onClick={() => handleSelectRoundPool(round)}>
-                                <Icon fontSize="20px">
-                                    <GoGear />
-                                </Icon>
-                            </Button>
-                        </Table.Cell>
-                        <Table.Cell w="40px">
-                            <Button aria-label="Settings" variant="plain" onClick={() => handleSelectRound(round)}>
-                                <Icon fontSize="20px">
-                                    <GoGear />
-                                </Icon>
-                            </Button>
-                        </Table.Cell>
-                    </Table.Row>
-                ))}
-            </Table.Body>
-        </Table.Root>
+        <>
+            <Heading mb="20px" fontWeight={100} ml={'10px'}>
+                Rounds
+            </Heading>
+            <Box style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }} boxShadow="md" p={4}>
+                <Table.Root width="100%">
+                    <Table.Header>
+                        <Table.Row background={'none'}>
+                            <Table.ColumnHeader>Round</Table.ColumnHeader>
+                            <Table.ColumnHeader>Year</Table.ColumnHeader>
+                            <Table.ColumnHeader>Status</Table.ColumnHeader>
+                            <Table.ColumnHeader></Table.ColumnHeader>
+                            <Table.ColumnHeader>Settings</Table.ColumnHeader>
+                        </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                        {rounds?.map((round, index) => (
+                            <Table.Row background={'none'} key={index}>
+                                <Table.Cell>{mapRound(round.round)}</Table.Cell>
+                                <Table.Cell>{round.year}</Table.Cell>
+                                <Table.Cell>{round.status}</Table.Cell>
+                                <Table.Cell>
+                                    {!round.pools?.length && (
+                                        <ConfirmPoolGeneration
+                                            members={members}
+                                            leagueId={leagueId}
+                                            roundId={round.id}
+                                            onClose={handlePoolGeneration}
+                                        >
+                                            <Button
+                                                aria-label="Settings"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    console.log(round);
+                                                }}
+                                            >
+                                                Assign Pools
+                                            </Button>
+                                        </ConfirmPoolGeneration>
+                                    )}
+                                </Table.Cell>
+                                <Table.Cell w="40px">
+                                    <Button
+                                        aria-label="Settings"
+                                        variant="plain"
+                                        onClick={() => handleSelectRound(round)}
+                                    >
+                                        <Icon fontSize="20px">
+                                            <GoGear />
+                                        </Icon>
+                                    </Button>
+                                </Table.Cell>
+                            </Table.Row>
+                        ))}
+                    </Table.Body>
+                </Table.Root>
+            </Box>
+        </>
     );
 }
 
@@ -84,22 +108,9 @@ function RoundSettings({ round, onClose, leagueId }: { leagueId: number; round: 
     } = useForm<IRoundSettings>({
         defaultValues: round.round_settings[0]
     });
+    const { refresh: refreshRounds } = useRounds(leagueId);
+
     const onSubmit = async (data: IRoundSettings) => {
-        const playerCountFields = ['rb_count', 'flex_count', 'qb_count', 'wr_count', 'te_count', 'sf_count'];
-        const scoringFields = ['rb_ppr'];
-
-        let has_errors = false;
-        [...playerCountFields, ...scoringFields].forEach((field) => {
-            const value = data[field];
-            if (isNaN(parseInt(value))) {
-                setError(field as any, {
-                    type: 'manual',
-                    message: 'Missing or invalid'
-                });
-                has_errors = true;
-            }
-        });
-
         await upsertSettings({
             id: round.round_settings[0]?.id,
             round_id: round.id,
@@ -110,7 +121,7 @@ function RoundSettings({ round, onClose, leagueId }: { leagueId: number; round: 
             type: 'success',
             title: 'Settings Saved'
         });
-        // await inviteMember({ email: data.email, league_id });
+        refreshRounds();
     };
 
     return (
@@ -248,87 +259,13 @@ function RoundSettings({ round, onClose, leagueId }: { leagueId: number; round: 
     );
 }
 
-function Pools({ round, onClose, leagueId }: { leagueId: number; round: NFLRound; onClose: () => void }) {
-    const { pools, load: loadPools } = usePools(leagueId, round.id);
-    const { members, load: loadMembers } = useMembers(leagueId);
-    const pool_ids = useMemo(() => pools?.map((x) => x.id), [pools]);
-    const { teams, load: loadTeams } = useTeams(pool_ids);
-
-    const handleAssignPools = useCallback(async () => {
-        await assignPools({ members, pools });
-        loadTeams();
-
-        toaster.create({
-            title: 'Pools Assigned',
-            type: 'success'
-        });
-        loadPools();
-    }, [members, pools, loadPools]);
-
-    const handlePoolGeneration = useCallback(async () => {
-        loadPools();
-    }, []);
-
-    return (
-        <Box>
-            <HStack w="100%" justifyContent="space-between" mb={5}>
-                <Heading as="h2">
-                    Pools ({mapRound(round.round)} {round.year})
-                </Heading>
-                <HStack>
-                    <Button variant="outline" onClick={onClose}>
-                        Back
-                    </Button>
-                    {!pools?.length && (
-                        <ConfirmPoolGeneration leagueId={leagueId} roundId={round.id} onClose={handlePoolGeneration}>
-                            <Button as="div" variant="solid">
-                                Generate Pools
-                            </Button>
-                        </ConfirmPoolGeneration>
-                    )}
-                    {!!pools?.length && !teams?.length && (
-                        <Button as="div" variant="solid" onClick={handleAssignPools}>
-                            Assign Pools ({pools?.length})
-                        </Button>
-                    )}
-                </HStack>
-            </HStack>
-
-            <Table.Root width="100%">
-                <Table.Header>
-                    <Table.Row>
-                        <Table.ColumnHeader>Email</Table.ColumnHeader>
-                        <Table.ColumnHeader>Team Assigned</Table.ColumnHeader>
-                        <Table.ColumnHeader>Pick</Table.ColumnHeader>
-                        <Table.ColumnHeader>Pool Name</Table.ColumnHeader>
-                    </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                    {members?.map((member, index) => {
-                        const team = teams?.find((team) => team.member_id === member.id);
-                        const pool = pools?.find((pool) => pool.draft_order.includes(team?.id));
-                        return (
-                            <Table.Row key={index}>
-                                <Table.Cell>{member.email}</Table.Cell>
-                                <Table.Cell>{team != null ? 'Assigned' : 'Unassigned'}</Table.Cell>
-                                <Table.Cell>
-                                    {!pool ? '' : pool.draft_order.findIndex((x) => x === team.id) + 1}
-                                </Table.Cell>
-                                <Table.Cell>{pool?.name ?? ''}</Table.Cell>
-                            </Table.Row>
-                        );
-                    })}
-                </Table.Body>
-            </Table.Root>
-        </Box>
-    );
-}
-
-function ConfirmPoolGeneration({ children, leagueId, roundId, onClose }) {
+function ConfirmPoolGeneration({ children, leagueId, roundId, onClose, members }) {
     const [count, setCount] = useState(1);
 
     const handleGeneratePools = useCallback(async () => {
-        await createPools(count, leagueId, roundId);
+        const pools = await createPools(count, leagueId, roundId);
+        await assignPools({ members, pools });
+
         onClose();
     }, [count]);
 

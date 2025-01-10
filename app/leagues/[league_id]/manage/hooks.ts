@@ -1,7 +1,8 @@
 import { loadMembers, loadPools, loadRounds, loadTeams } from "@/actions/league";
 import { useAppSelector, useAppDispatch } from "@/app/hooks";
 import { Team, TeamPlayer } from "@/app/types";
-import { setMembers, setRounds } from "@/store/leagueSlice";
+import { setRounds } from "@/store/appSlice";
+import { setMembers, } from "@/store/leagueSlice";
 import { useCallback, useEffect, useState } from "react";
 
 export function useMembers(league_id: number) {
@@ -23,24 +24,24 @@ export function useMembers(league_id: number) {
 }
 
 export function useRounds(league_id: number) {
-    const rounds = useAppSelector((state) => state.league.rounds);
+    const rounds = useAppSelector((state) => state.app.rounds);
     const dispatch = useAppDispatch();
 
+    const load = useCallback(async () => {
+        const response = await loadRounds(league_id);
+        dispatch(setRounds(response.data));
+    }, [league_id])
+
     useEffect(() => {
-        if (rounds != null || league_id == null) {
+        console.log(rounds, league_id)
+        if (rounds?.length || league_id == null) {
             return;
         }
 
-        async function load() {
-            const response = await loadRounds(league_id);
-            console.log(response)
-            dispatch(setRounds(response.data));
-        }
-
         load();
-    }, [league_id]);
+    }, [load]);
 
-  return { rounds }
+  return { rounds, refresh: load }
 
 }
 

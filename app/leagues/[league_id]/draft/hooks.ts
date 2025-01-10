@@ -24,7 +24,7 @@ export function useNFLTeams() {
 }
 
 export function useNFLPlayers(query: { name?: string, pos: string, team_ids?: number[], round_id: string }, pool_id: number) {
-    const [nflPlayers, setNFLPlayers] = useState([])
+    const [nflPlayers, setNFLPlayers] = useState<any>()
 
     const load = useCallback(async() => {
         if (!pool_id) {
@@ -160,7 +160,7 @@ export function useMember(league_id: number, user: User) {
         if (!user) {
             return
         }
-
+        console.trace('foo"0')
         const response = await loadMember(league_id, user)
         setMembers(response.data);
     }, [league_id, user])

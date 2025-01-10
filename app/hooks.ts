@@ -1,32 +1,81 @@
-'use client'
+'use client';
 
-import { typedClient } from "@/utils/supabase/supabase";
-import { useEffect, useMemo, useState} from "react";
-import { User } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
+import { typedClient } from '@/utils/supabase/supabase';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
-export function useUser(): { user: User | null} {
+export function useUser(): { user: User | null } {
     const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
 
-  useEffect(() => {
-    async function loadUser() {
-      const {
-        data: { user: fetchedUser },
-      } = await typedClient.auth.getUser();
-      setUser(fetchedUser);
-    }
+    useEffect(() => {
+        async function loadUser() {
+            const {
+                data: { user: fetchedUser }
+            } = await typedClient.auth.getUser();
+            setUser(fetchedUser);
+        }
 
-    loadUser()
-  }, [router])
+        loadUser();
+    }, [router]);
 
-  return { user }
+    return { user };
+}
+
+export function useApp(league_id: string) {
+    const app = useAppSelector((state) => state.app);
+    const dispatch = useAppDispatch();
+    const { user } = useUser();
+    const { member } = useMember(parseInt(league_id), user);
+    const { team, load: refreshTeam } = useTeam(parseInt(league_id as string), member?.id);
+    const { rounds } = useRounds(parseInt(league_id as string));
+    const { league } = useLeague(league_id);
+    const { pools } = usePools(app.league?.id);
+
+    useEffect(() => {
+      dispatch(setPools(pools))
+    }, [pools])
+
+    useEffect(() => {
+      dispatch(setLeague(league))
+    }, [league])
+    
+    useEffect(() => {
+      dispatch(setRounds(rounds))
+    }, [rounds])
+
+    useEffect(() => {
+        dispatch(setMember(member));
+    }, [member]);
+
+    useEffect(() => {
+        dispatch(setUser(user));
+    }, [user]);
+
+    useEffect(() => {
+        dispatch(setTeam(team));
+    }, [team]);
+
+    useEffect(() => {
+      if (app.teamName !== team?.name) {
+        refreshTeam()
+      }
+    }, [app.teamName, team])
+
+    useEffect(() => {
+
+    }, [app.round_id])
+
+    return {
+        app,
+    };
 }
 
 /**
- * 
+ *
  * @param league_id string from route param
- * @returns 
+ * @returns
  */
 export function useLeague(league_id: string) {
     const { leagues } = useLeagues();
@@ -37,37 +86,47 @@ export function useLeague(league_id: string) {
         return null;
     }, [leagues, league_id]);
 
-    return { league }
+    return { league };
 }
 
-export function useLeagues(): { leagues: any} {
-    const leagues = useAppSelector((state) => state.leagues.leagues);
+export function useLeagues(): { leagues: any } {
+    const leagues = useAppSelector((state) => state.app.leagues);
     const dispatch = useAppDispatch();
-    const {user} = useUser()
-
+    const { user } = useUser();
 
     useEffect(() => {
         if (leagues != null || user == null) {
             return;
         }
-        console.log(leagues, user)
 
         async function load() {
             const response = await loadLeagues(user);
             dispatch(setLeagues(response.data));
-        }
+          }
 
         load();
     }, [leagues, user]);
 
-  return { leagues }
+    return { leagues };
 }
 
-import { useDispatch, useSelector } from 'react-redux'
-import type { AppDispatch, RootState } from '@/store'
-import { loadLeagues } from "@/actions/league";
-import { setLeagues } from "@/store/leaguesSlice";
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
+import { loadLeague, loadLeagues } from '@/actions/league';
+import {
+    setLeague,
+    setMember,
+    setRoundId,
+    setRounds,
+    setLeagues,
+    setTab,
+    setTeam,
+    setUser,
+    setPools
+} from '@/store/appSlice';
+import { useMember, useTeam } from './leagues/[league_id]/draft/hooks';
+import { usePools, useRounds } from './leagues/[league_id]/manage/hooks';
 
 // Use throughout your app instead of plain `useDispatch` and `useSelector`
-export const useAppDispatch = useDispatch.withTypes<AppDispatch>()
-export const useAppSelector = useSelector.withTypes<RootState>()
+export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
+export const useAppSelector = useSelector.withTypes<RootState>();

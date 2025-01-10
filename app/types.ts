@@ -5,6 +5,14 @@ export interface Member {
     status: 'pending' | 'accepted'
 }
 
+export interface League {
+    id: number
+    admin_id: number
+    name: string
+    team: Team[]
+    league_members: Member[]
+}
+
 export interface Stats {
     id: number
     player_id: number
@@ -73,6 +81,7 @@ export interface NFLRound {
     year: number,
     status: 'pending' | 'drafting' | 'started' | 'finished'
     round_settings: RoundSettings[]
+    pools: Pool[]
 }
 
 export interface RoundSettings {

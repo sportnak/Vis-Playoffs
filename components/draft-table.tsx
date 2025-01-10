@@ -1,4 +1,4 @@
-import { useLeagues, useUser } from '@/app/hooks';
+import { useAppSelector, useLeagues, useUser } from '@/app/hooks';
 import { useDraft, useMember, useNFLPlayers, usePool } from '@/app/leagues/[league_id]/draft/hooks';
 import {
     DialogRootProvider,
@@ -50,11 +50,12 @@ const positions = createListCollection({
     ]
 });
 
-export default function Draft({ roundId, pool, team, teams, member, draftPlayer, refreshDraft }) {
+export default function Draft({ pool, team, teams, member, draftPlayer, refreshDraft }) {
+    const { round_id } = useAppSelector((state) => state.app);
     const [query, setQuery] = useState({
         drafted: false,
         pos: '',
-        round_id: roundId as string,
+        round_id: round_id.toString(),
         name: '',
         team_ids: []
     });
@@ -74,10 +75,12 @@ export default function Draft({ roundId, pool, team, teams, member, draftPlayer,
     }, []);
 
     const { nflPlayers, load } = useNFLPlayers(query, pool?.id);
+    useEffect(() => {
+        setQuery((x) => ({ ...x, round_id: round_id.toString() }));
+    }, [round_id]);
 
     const [playerConfirmation, setPlayerConfirmation] = useState<any>();
 
-    const [isTurn, setIsTurn] = useState(false);
     const [currTurn, setCurrTurn] = useState<Team>(null);
     useEffect(() => {
         if (!pool || !teams) {
@@ -85,14 +88,6 @@ export default function Draft({ roundId, pool, team, teams, member, draftPlayer,
         }
         setCurrTurn(teams.find((x) => x.id === pool.current));
     }, [pool, teams]);
-
-    useEffect(() => {
-        if (!pool) return;
-        if (pool.current === team?.id) {
-            setIsTurn(true);
-        }
-    }, [member?.id, pool, team]);
-
     const handleDraftPlayer = useCallback(
         async (player_id: number) => {
             const response = await draftPlayer(player_id);
@@ -189,25 +184,33 @@ export default function Draft({ roundId, pool, team, teams, member, draftPlayer,
                 {pool && currTurn && (
                     <Center w="100%" p={4} boxShadow="sm" border="none" borderRadius="6px" bg="#e7f9e7" mb={5}>
                         <Heading size={'md'} as="h5" fontWeight={300}>
-                            {isTurn ? "It's your turn to pick!" : `Waiting on ${currTurn?.name}`}
+                            {pool.current === team?.id ? "It's your turn to pick!" : `Waiting on ${currTurn?.name}`}
                         </Heading>
                     </Center>
                 )}
 
-                <Table.Root background={'none'}>
-                    <Table.Header>
-                        <Table.Row background={'none'}>
-                            <Table.ColumnHeader>Name</Table.ColumnHeader>
-                            <Table.ColumnHeader>Team</Table.ColumnHeader>
-                            <Table.ColumnHeader>Pos</Table.ColumnHeader>
-                            <Table.ColumnHeader></Table.ColumnHeader>
-                        </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                        {!nflPlayers ? (
-                            <Spinner />
-                        ) : (
-                            nflPlayers?.map((player) => (
+                {!nflPlayers ? (
+                    <Center>
+                        <Spinner size="lg" />
+                    </Center>
+                ) : !nflPlayers.length ? (
+                    <Center>
+                        <Heading size={'md'} as="h5" fontWeight={300}>
+                            No players. Games have not been set
+                        </Heading>
+                    </Center>
+                ) : (
+                    <Table.Root background={'none'}>
+                        <Table.Header>
+                            <Table.Row background={'none'}>
+                                <Table.ColumnHeader>Name</Table.ColumnHeader>
+                                <Table.ColumnHeader>Team</Table.ColumnHeader>
+                                <Table.ColumnHeader>Pos</Table.ColumnHeader>
+                                <Table.ColumnHeader></Table.ColumnHeader>
+                            </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                            {nflPlayers?.map((player) => (
                                 <Table.Row background={'none'} key={player.id}>
                                     <Table.Cell>{player.name}</Table.Cell>
                                     <Table.Cell>{player.nfl_team.name}</Table.Cell>
@@ -217,7 +220,7 @@ export default function Draft({ roundId, pool, team, teams, member, draftPlayer,
                                             'Drafted'
                                         ) : (
                                             <Button
-                                                disabled={!isTurn}
+                                                disabled={pool.current !== team?.id}
                                                 as="div"
                                                 variant="ghost"
                                                 style={{
@@ -232,7 +235,7 @@ export default function Draft({ roundId, pool, team, teams, member, draftPlayer,
                                                     background: '#2482A6'
                                                 }}
                                                 onClick={() => {
-                                                    if (!isTurn) {
+                                                    if (pool.current !== team?.id) {
                                                         return;
                                                     }
 
@@ -245,10 +248,10 @@ export default function Draft({ roundId, pool, team, teams, member, draftPlayer,
                                         )}
                                     </Table.Cell>
                                 </Table.Row>
-                            ))
-                        )}
-                    </Table.Body>
-                </Table.Root>
+                            ))}
+                        </Table.Body>
+                    </Table.Root>
+                )}
             </Flex>
         </Box>
     );
