@@ -59,7 +59,7 @@ export async function loadMembers({ league_id }: { league_id: number }) {
 
 export async function loadRounds(league_id: number) {
     const client = await createClient();
-    const response = await client.from('nfl_rounds').select('*, round_settings(*), pools(*)').eq('round_settings.league_id', league_id);
+    const response = await client.from('nfl_rounds').select('*, round_settings(*), pools(*)').eq('pools.league_id', league_id).eq('round_settings.league_id', league_id);
     return response;
 }
 
@@ -420,14 +420,9 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
 export async function loadPoints({ league_id, round_id }: { round_id?: number; league_id: number }) {
     const client = await createClient();
     const request =  client.from('round_settings').select('*').eq('league_id', league_id);
-    if (round_id != null) {
-        request.eq('round_id', round_id)
-    } else { 
         request.not('round_id', 'eq', -1)
-    }
     
     const round_settings = await request
-    console.log(round_settings)
     const { data: teamsWithPlayers } = await client
         .from('team')
         .select('*, players:team_players(*, player(*))')
@@ -443,6 +438,7 @@ export async function loadPoints({ league_id, round_id }: { round_id?: number; l
             ...team,
             team_players: team.players.map((player) => {
                 const player_stats = stats.filter((x) => x.player_id === player.player.id)[0]
+
                 return {
                     ...player,
                     stats: player_stats,

@@ -12,14 +12,12 @@ import { mapRound } from '@/utils';
 export function Scoreboard({ league_id }) {
     const app = useAppSelector((state) => state.app);
     const { round_id, league, member, rounds, pools } = app;
-    const { user } = useUser();
     const currentRound = useMemo(() => {
         return rounds?.find((round) => round.id === round_id);
     }, [rounds, round_id]);
 
     const { teams, refresh } = usePoints(parseInt(league_id as string), round_id);
     const { teams: teamSeason } = usePoints(parseInt(league_id as string));
-    console.log(teamSeason);
 
     return (
         <Box>
@@ -34,6 +32,7 @@ export function Scoreboard({ league_id }) {
                             totalPoints(teamSeason.find((t) => t.id === a.id))
                     )
                     .map((team) => {
+                        console.log(pools, currentRound?.id);
                         const pool = pools.find((pool) => pool.round_id === currentRound?.id);
                         return (
                             <Box
@@ -48,7 +47,7 @@ export function Scoreboard({ league_id }) {
                                     <Heading fontSize="18px" fontWeight={100}>
                                         {team.name} ({totalPoints(teamSeason.find((t) => t.id === team.id))})
                                     </Heading>
-                                    <Text>{totalPoints(team)}</Text>
+                                    <Text>{totalPoints(team, pool?.id)}</Text>
                                 </HStack>
                                 <Text mb={'10px'} fontSize={'10px'}>
                                     Pool: {pool?.name}
@@ -68,6 +67,10 @@ export function Scoreboard({ league_id }) {
     );
 }
 
-function totalPoints(team: Team) {
-    return team?.team_players.reduce((acc, player) => acc + player.score, 0) ?? 0;
+function totalPoints(team: Team, pool_id?: number) {
+    return (
+        team?.team_players
+            .filter((x) => !pool_id || x.pool_id === pool_id)
+            .reduce((acc, player) => acc + player.score, 0) ?? 0
+    );
 }
