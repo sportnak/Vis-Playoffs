@@ -26,7 +26,7 @@ export function Scoreboard({ league_id }) {
             <Heading mb="30px" fontWeight={300}>
                 Round: {mapRound(currentRound?.round)}
             </Heading>
-            <HStack flexWrap={'wrap'} gap={'20px'}>
+            <HStack justifyContent={'center'} flexWrap={'wrap'} gap={'20px'}>
                 {teams
                     .sort(
                         (a, b) =>
