@@ -64,25 +64,6 @@ export function Scoreboard({ league_id }) {
                         );
                     })}
             </HStack>
-            <Heading mb="20px">Scoreboard</Heading>
-            <Table.Root>
-                <Table.Header>
-                    <Table.Row>
-                        <Table.ColumnHeader>Name</Table.ColumnHeader>
-                        <Table.ColumnHeader>Points</Table.ColumnHeader>
-                        <Table.ColumnHeader>Season</Table.ColumnHeader>
-                    </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                    {teams?.map((team) => (
-                        <Table.Row key={team.id}>
-                            <Table.Cell>{team.name}</Table.Cell>
-                            <Table.Cell>{totalPoints(team)}</Table.Cell>
-                            <Table.Cell>{totalPoints(teamSeason.find((t) => t.id === team.id))}</Table.Cell>
-                        </Table.Row>
-                    ))}
-                </Table.Body>
-            </Table.Root>
         </Box>
     );
 }
