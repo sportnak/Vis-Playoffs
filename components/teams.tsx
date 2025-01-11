@@ -230,8 +230,8 @@ function PlayerItem({
         </Tooltip>
     );
 }
-const wr_stats = [];
-const rb_stats = [];
+const wr_stats = ['rec', 'rec_yds', 'rec_td', 'fum', 'rush_att', 'rush_yds', 'rush_td'];
+const rb_stats = ['rush_att', 'rush_yds', 'rush_td', 'fum', 'rec', 'rec_yds', 'rec_td'];
 const qb_stats = ['pass_att', 'pass_yds', 'pass_td', 'rush_att', 'rush_yds', 'rush_td', 'fum', 'int'];
 function mapStatName(stat) {
     switch (stat) {
@@ -251,6 +251,14 @@ function mapStatName(stat) {
             return 'Fumbles';
         case 'int':
             return 'Ints';
+        case 'rec':
+            return 'Receptions';
+        case 'rec_yds':
+            return 'Rec Yds';
+        case 'rec_td':
+            return 'Rec TD';
+        default:
+            return stat;
     }
 }
 function Points({ player }: { player: TeamPlayer }) {
