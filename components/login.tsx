@@ -1,20 +1,23 @@
 import { login, signup } from '@/app/login/actions';
-import { Box, Heading, Stack, Input, Button, Fieldset } from '@chakra-ui/react';
+import { Box, Heading, Stack, Input, Button, Fieldset, Spinner } from '@chakra-ui/react';
 import { Field } from '@/components/ui/field';
 
 import { useForm } from 'react-hook-form';
 import { toaster } from './ui/toaster';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 export function LoginComponent({ toggleComponent }) {
     const { handleSubmit, control } = useForm<{ email: string; password: string }>();
+    const [isLoading, setIsLoading] = useState(false);
 
     const onSubmit = async (data: { email: string; password: string }) => {
+        setIsLoading(true);
         const result = await login(data);
+        setIsLoading(false);
         if (result?.error) {
             toaster.create({
                 type: 'error',
-                title: result.error.message
+                title: 'Invalid login. Make sure you confirmed your email.'
             });
             return;
         }
@@ -37,10 +40,10 @@ export function LoginComponent({ toggleComponent }) {
                     <Field id="password" label="Password">
                         <Input type="password" placeholder="Enter your password" {...control.register('password')} />
                     </Field>
-                    <Button variant="solid" type="submit">
-                        Login
+                    <Button variant="solid" type="submit" disabled={isLoading}>
+                        {isLoading ? <Spinner /> : 'Login'}
                     </Button>
-                    <Button variant="plain" onClick={toggleComponent}>
+                    <Button variant="plain" onClick={isLoading ? null : toggleComponent}>
                         Register
                     </Button>
                 </Stack>
@@ -51,9 +54,12 @@ export function LoginComponent({ toggleComponent }) {
 
 export function RegisterComponent({ toggleComponent }) {
     const { handleSubmit, register } = useForm<{ email: string; password: string }>();
-
+    const [isLoading, setIsLoading] = useState(false);
     const handleRegister = useCallback(async (data) => {
+        setIsLoading(true);
         const result = await signup(data);
+        setIsLoading(false);
+
         if (result?.error) {
             toaster.create({
                 type: 'error',
@@ -85,10 +91,10 @@ export function RegisterComponent({ toggleComponent }) {
                         <Field id="password" label="Password">
                             <Input type="password" placeholder="Enter your password" {...register('password')} />
                         </Field>
-                        <Button variant="solid" type="submit">
-                            Register
+                        <Button disabled={isLoading} variant="solid" type="submit">
+                            {isLoading ? <Spinner /> : 'Register'}
                         </Button>
-                        <Button variant="plain" onClick={toggleComponent}>
+                        <Button variant="plain" onClick={isLoading ? null : toggleComponent}>
                             Login
                         </Button>
                     </Fieldset.Content>
