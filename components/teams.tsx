@@ -185,7 +185,12 @@ function PlayerItem({
                 )}
             </HStack>
             {showScore && player && (
-                <Text fontSize="12px" color={player.score < 5 ? 'red' : player.score < 10 ? 'yellow' : 'green'}>
+                <Text
+                    fontSize="12px"
+                    color={
+                        player.score < 5 ? 'red' : player.score < 10 ? 'yellow' : player.score < 20 ? 'green' : 'blue'
+                    }
+                >
                     {player?.score} pts
                 </Text>
             )}
