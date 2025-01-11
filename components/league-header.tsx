@@ -98,19 +98,12 @@ export function LeagueHeader() {
             justifyContent="space-between"
             alignItems="center"
             style={{
-                height: '100px',
                 width: '100%',
                 paddingTop: '20px',
                 paddingBottom: '20px'
             }}
+            flexWrap={'wrap'}
         >
-            <Box>
-                <Select
-                    value={roundItems.items.find((x) => x.value === selectedRoundId)}
-                    items={roundItems.items}
-                    onChange={(e) => setValue(e.value)}
-                />
-            </Box>
             <HStack>
                 <Button
                     variant="plain"
@@ -179,24 +172,33 @@ export function LeagueHeader() {
                     </Button>
                 )}
             </HStack>
-            <Box>
-                <InputGroup
-                    endElement={
-                        <Icon fontSize="20px">
-                            <LuPencil />
-                        </Icon>
-                    }
-                >
-                    <Input
-                        variant="subtle"
-                        style={{ background: 'rgba(169, 169, 169, 0.1)', fontSize: '14px' }}
-                        value={localName}
-                        onChange={handleNameChange}
-                        w="250px"
-                        placeholder="Name"
+            <HStack>
+                <Box>
+                    <Select
+                        value={roundItems.items.find((x) => x.value === selectedRoundId)}
+                        items={roundItems.items}
+                        onChange={(e) => setValue(e.value)}
                     />
-                </InputGroup>
-            </Box>
+                </Box>
+                <Box>
+                    <InputGroup
+                        endElement={
+                            <Icon fontSize="20px">
+                                <LuPencil />
+                            </Icon>
+                        }
+                    >
+                        <Input
+                            variant="subtle"
+                            style={{ background: 'rgba(169, 169, 169, 0.1)', fontSize: '14px' }}
+                            value={localName}
+                            onChange={handleNameChange}
+                            w="250px"
+                            placeholder="Name"
+                        />
+                    </InputGroup>
+                </Box>
+            </HStack>
         </HStack>
     );
 }

@@ -72,7 +72,6 @@ export function useDraft(league_id: number, round_id: number, member: Member) {
         dispatch(setTeam(team.data[0]))
         const pool_response = await loadPool(round_id, league_id, );
         const pool = pool_response.data.find(pool => pool.draft_order.includes(team.data[0].id))
-        console.log(pool_response)
         dispatch(setPool(pool));
     }, [league_id, round_id, dispatch]);
 
@@ -81,7 +80,6 @@ export function useDraft(league_id: number, round_id: number, member: Member) {
     }, [load]);
 
     const handleDraftPlayer = useCallback(async (player_id: number, team_id: number) => {
-        console.log(player_id, team_id)
         const response = await draftPlayer(league_id, round_id, pool.id, team_id, player_id)
         return response
     }, [pool, team, round_id, league_id]);

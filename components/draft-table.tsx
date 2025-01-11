@@ -90,7 +90,6 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
     }, [pool, teams]);
     const handleDraftPlayer = useCallback(
         async (player_id: number, team_id: number) => {
-            console.log(player_id, team_id);
             const response = await draftPlayer(player_id, team_id);
             if (response.error) {
                 toaster.create({
@@ -134,11 +133,18 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                 </DialogContent>
             </DialogRootProvider>
             <Flex direction={'column'}>
-                <HStack mb={5} w="100%" justifyContent="space-between">
+                <Flex
+                    flexDir={'row'}
+                    sm={{ flexDir: 'column', alignItems: 'flex-start' }}
+                    alignItems={'center'}
+                    mb={5}
+                    maxW="100%"
+                    justifyContent="space-between"
+                >
                     <Heading as="h2" fontWeight={100}>
                         Players
                     </Heading>
-                    <HStack>
+                    <HStack flexWrap={'wrap'}>
                         <SelectRoot
                             style={{ borderColor: 'gray', width: '150px', cursor: 'pointer' }}
                             collection={positions}
@@ -183,11 +189,15 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                             />
                         </InputGroup>
                     </HStack>
-                </HStack>
+                </Flex>
                 {pool && currTurn && (
                     <Center w="100%" p={4} boxShadow="sm" border="none" borderRadius="6px" bg="#e7f9e7" mb={5}>
                         <Heading size={'md'} as="h5" fontWeight={300}>
-                            {pool.current === team?.id ? "It's your turn to pick!" : `Waiting on ${currTurn?.name}`}
+                            {pool.status === 'complete'
+                                ? 'Drafting complete!'
+                                : pool.current === team?.id
+                                  ? "It's your turn to pick!"
+                                  : `Waiting on ${currTurn?.name}`}
                         </Heading>
                     </Center>
                 )}

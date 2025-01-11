@@ -21,7 +21,7 @@ export function Scoreboard({ league_id }) {
 
     return (
         <Box>
-            <Heading mb="30px" fontWeight={300}>
+            <Heading ml="15px" mb="30px" fontWeight={300}>
                 Round: {mapRound(currentRound?.round)}
             </Heading>
             <HStack justifyContent={'center'} flexWrap={'wrap'} gap={'20px'}>

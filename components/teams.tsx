@@ -65,7 +65,7 @@ export function TeamCard({ team, round, pool, memberId, showScore }) {
     const teCount = useMemo(() => round?.round_settings[0]?.te_count, [round]);
     const flexCount = useMemo(() => round?.round_settings[0]?.flex_count, [round]);
     const sfCount = useMemo(() => round?.round_settings[0]?.sf_count, [round]);
-    const showDrop = team?.member_id === memberId && pool?.status === 'complete';
+    const showDrop = false; //team?.member_id === memberId && pool?.status === 'complete';
 
     const handleDropPlayer = useCallback((player_id: number) => {
         window.alert('Dropping' + player_id);
@@ -201,7 +201,6 @@ function createTeam(team: Team, counts, poolId: number) {
     const flexs = [];
     const sfs = [];
 
-    console.log(team, counts);
     if (!team || !counts.qbCount) {
         return {};
     }
@@ -212,11 +211,6 @@ function createTeam(team: Team, counts, poolId: number) {
                 qbs.push(player);
             } else if (sfs.length < counts.sfCount) {
                 sfs.push(player);
-            } else {
-                toaster.create({
-                    type: 'error',
-                    title: 'Invalid team found.'
-                });
             }
         }
 
@@ -227,11 +221,6 @@ function createTeam(team: Team, counts, poolId: number) {
                 flexs.push(player);
             } else if (sfs.length < counts.sfCount) {
                 sfs.push(player);
-            } else {
-                toaster.create({
-                    type: 'error',
-                    title: 'Invalid team found.'
-                });
             }
         }
 
@@ -242,11 +231,6 @@ function createTeam(team: Team, counts, poolId: number) {
                 flexs.push(player);
             } else if (sfs.length < counts.sfCount) {
                 sfs.push(player);
-            } else {
-                toaster.create({
-                    type: 'error',
-                    title: 'Invalid team found.'
-                });
             }
         }
 
@@ -257,11 +241,6 @@ function createTeam(team: Team, counts, poolId: number) {
                 flexs.push(player);
             } else if (sfs.length < counts.sfCount) {
                 sfs.push(player);
-            } else {
-                toaster.create({
-                    type: 'error',
-                    title: 'Invalid team found.'
-                });
             }
         }
     }

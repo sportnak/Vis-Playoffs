@@ -71,7 +71,6 @@ export function useTeams(pool_ids: number[]) {
             return
         }
         const response = await loadTeams({ pool_ids });
-        console.log(response)
         setTeams(response);
     }, [pool_ids, ])
 
