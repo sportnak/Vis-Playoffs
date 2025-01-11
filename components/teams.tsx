@@ -288,7 +288,11 @@ function Points({ player }: { player: TeamPlayer }) {
                             {mapStatName(stat).toUpperCase()}
                         </Text>
                         <Text fontSize="12px" fontWeight={'bold'}>
-                            {stat === 'pass_att' ? `${stats['comp']}/${stats[stat]}` : (stats[stat] ?? 0)}
+                            {stat === 'pass_att'
+                                ? `${stats['comp']}/${stats[stat]}`
+                                : stat === 'rec'
+                                  ? `${stats[stat]}/${stats['tar']}`
+                                  : (stats[stat] ?? 0)}
                         </Text>
                     </VStack>
                 ))}
