@@ -470,5 +470,6 @@ function scorePlayer(player: Player, stats: Stats, round_settings: RoundSettings
     score += round_settings.pass_yd * (stats?.pass_yds ?? 0)
     score += round_settings.fum * (stats?.fum ?? 0)
     score += round_settings.int * (stats?.int ?? 0)
-    return score
+    
+    return parseFloat(score.toFixed(2));
 }

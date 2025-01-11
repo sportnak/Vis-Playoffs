@@ -8,6 +8,9 @@ import { useAppSelector, useUser } from '@/app/hooks';
 import { useDraft } from '@/app/leagues/[league_id]/draft/hooks';
 import { useMemo } from 'react';
 import { mapRound } from '@/utils';
+import { useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { useRef } from 'react';
 
 export function Scoreboard({ league_id }) {
     const app = useAppSelector((state) => state.app);
@@ -17,7 +20,30 @@ export function Scoreboard({ league_id }) {
     }, [rounds, round_id]);
 
     const { teams, refresh } = usePoints(parseInt(league_id as string), round_id);
-    const { teams: teamSeason } = usePoints(parseInt(league_id as string));
+    const { teams: teamSeason, refresh: refreshTeam } = usePoints(parseInt(league_id as string));
+
+    useEffect(() => {
+        console.log('listening');
+        const handleInserts = (payload) => {
+            console.log('Change received!', payload);
+            refresh();
+            refreshTeam();
+        };
+
+        const client = createClient();
+        const channel = client.channel('supabase_realtime');
+        // Listen to inserts
+        channel
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stats' }, handleInserts)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stats' }, handleInserts)
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'stats' }, handleInserts)
+            .subscribe();
+
+        return () => {
+            console.log('removing');
+            client.removeChannel(channel);
+        };
+    }, [refresh, refreshTeam]);
 
     return (
         <Box>
@@ -69,9 +95,9 @@ export function Scoreboard({ league_id }) {
 }
 
 function totalPoints(team: Team, pool_id?: number) {
-    return (
+    const total =
         team?.team_players
             .filter((x) => !pool_id || x.pool_id === pool_id)
-            .reduce((acc, player) => acc + player.score, 0) ?? 0
-    );
+            .reduce((acc, player) => acc + player.score, 0) ?? 0;
+    return parseFloat(total.toFixed(2));
 }
