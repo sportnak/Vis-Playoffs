@@ -80,7 +80,7 @@ export function useDraft(league_id: number, round_id: number, member: Member) {
     }, [load]);
 
     const handleDraftPlayer = useCallback(async (player_id: number, team_id: number) => {
-        const response = await draftPlayer(league_id, round_id, pool.id, team_id, player_id)
+        const response = await draftPlayer(league_id, round_id, pool.id, team.id, player_id)
         return response
     }, [pool, team, round_id, league_id]);
 

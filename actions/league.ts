@@ -330,11 +330,11 @@ export async function draftPlayer(league_id: number, round_id: number, pool_id: 
     if (!response.error) {
         const next: number[]= pool.data[0].draft_order;
         const curr_index = next.findIndex((x) => x === team_id);
-        const next_index = curr_index === next.length - 1 ? 0 : curr_index + 1;
+        let next_index = curr_index === next.length - 1 ? 0 : curr_index + 1;
         if (next_index === 0) {
-             next.reverse()
+            next.reverse()
         }
-        const next_team_count = (await client.from('team_players').select('*').eq('pool_id', pool_id).eq('team_id', next[next_index])).count ?? 0;
+        const next_team_count = (await client.from('team_players').select('*').eq('pool_id', pool_id).eq('team_id', next[next_index])).data.length ?? 0;
         if (settings.data[0].max_team_size === next_team_count) {
             await client.from('pools').update({ current: null, status: 'complete' }).eq('id', pool_id);
             return response
