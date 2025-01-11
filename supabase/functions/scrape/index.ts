@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'npm:puppeteer';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // dotenv.config({ path: '.env.local' });
@@ -29,7 +29,6 @@ async function scrape(url: string) {
 
         teams.forEach((team) => {
             const title = team.querySelector('.TeamTitle__Name')?.textContent || '';
-            console.log(title);
 
             const isPassing = title.includes('Passing');
             const isRushing = title.includes('Rushing');
@@ -78,8 +77,6 @@ async function scrape(url: string) {
 }
 
 // scrape()
-
-console.log(Deno.env.get('SUPABASE_URL'));
 
 Deno.serve(async (req: Request) => {
     const authHeader = req.headers.get('Authorization')!;

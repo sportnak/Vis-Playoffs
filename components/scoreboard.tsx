@@ -23,9 +23,7 @@ export function Scoreboard({ league_id }) {
     const { teams: teamSeason, refresh: refreshTeam } = usePoints(parseInt(league_id as string));
 
     useEffect(() => {
-        console.log('listening');
         const handleInserts = (payload) => {
-            console.log('Change received!', payload);
             refresh();
             refreshTeam();
         };
@@ -40,7 +38,6 @@ export function Scoreboard({ league_id }) {
             .subscribe();
 
         return () => {
-            console.log('removing');
             client.removeChannel(channel);
         };
     }, [refresh, refreshTeam]);
