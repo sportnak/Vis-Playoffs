@@ -17,6 +17,7 @@ import { toaster } from './ui/toaster';
 import { mapPos } from '@/app/util';
 import { Select } from './select';
 import { Tooltip } from './ui/tooltip';
+import { set } from 'react-hook-form';
 
 export default function Teams({
     teams,
@@ -170,8 +171,10 @@ function PlayerItem({
     showScore?: boolean;
 }) {
     const stats = (player as any)?.stats;
+    const [open, setOpen] = useState(false);
     return (
         <Tooltip
+            interactive
             contentProps={{
                 css: {
                     '--tooltip-bg': 'rgba(255, 255, 255, 1)',
@@ -180,8 +183,17 @@ function PlayerItem({
             }}
             disabled={stats == null}
             content={<Points player={player} />}
+            open={open}
+            onOpenChange={(e) => setOpen(e.open)}
         >
-            <HStack w="100%" justifyContent={'space-between'}>
+            <HStack
+                w="100%"
+                justifyContent={'space-between'}
+                onMouseEnter={() => setOpen(true)}
+                onMouseLeave={() => setOpen(false)}
+                onClick={() => setOpen(!true)}
+                onBlur={() => setOpen(false)}
+            >
                 <HStack>
                     <Center
                         bg="linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)"
