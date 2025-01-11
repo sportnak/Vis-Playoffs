@@ -452,13 +452,13 @@ export async function loadPoints({ league_id, round_id }: { round_id?: number; l
     return teamsWithPlayersWithStats
 }
 
-function scorePlayer(player: Player, stats: Stats, round_settings: RoundSettings) {
+function scorePlayer(player: TeamPlayer, stats: Stats, round_settings: RoundSettings) {
     let score = 0;
-    if (player.is_qb || player.is_wr) {
+    if (player.player.is_qb || player.player.is_wr) {
         score += round_settings.wr_ppr * (stats?.rec ?? 0)
-    } else if (player.is_te) {
+    } else if (player.player.is_te) {
         score += round_settings.te_ppr * (stats?.rec ?? 0)
-    } else if (player.is_rb) {
+    } else if (player.player.is_rb) {
         score += round_settings.rb_ppr * (stats?.rec ?? 0)
     }
 
