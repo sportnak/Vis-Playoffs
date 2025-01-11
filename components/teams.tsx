@@ -1,10 +1,22 @@
-import { Text, Box, createListCollection, HStack, VStack, Button, Heading, Center } from '@chakra-ui/react';
+import {
+    Text,
+    Box,
+    createListCollection,
+    HStack,
+    VStack,
+    Button,
+    Heading,
+    Center,
+    Table,
+    Grid
+} from '@chakra-ui/react';
 import { SelectContent, SelectItem, SelectLabel, SelectRoot, SelectTrigger, SelectValueText } from './ui/select';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { NFLRound, Player, Pool, RoundSettings, Team, TeamPlayer } from '@/app/types';
+import { NFLRound, Player, Pool, RoundSettings, Stats, Team, TeamPlayer } from '@/app/types';
 import { toaster } from './ui/toaster';
 import { mapPos } from '@/app/util';
 import { Select } from './select';
+import { Tooltip } from './ui/tooltip';
 
 export default function Teams({
     teams,
@@ -157,44 +169,111 @@ function PlayerItem({
     position: string;
     showScore?: boolean;
 }) {
+    const stats = (player as any)?.stats;
     return (
-        <HStack w="100%" justifyContent={'space-between'}>
-            <HStack>
-                <Center
-                    bg="linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)"
-                    h="40px"
-                    w="40px"
-                    fontSize="12px"
-                    borderRadius="20px"
-                >
-                    {position}
-                </Center>
-                {player ? (
-                    <>
-                        <Text fontSize="12px" textAlign={'left'}>
-                            {player.player.name}
-                        </Text>
-                        {dropPlayer && <Button onClick={() => dropPlayer(player.player.id)}>X</Button>}
-                    </>
-                ) : (
-                    <Box>
-                        <Text color="gray.400" fontSize="12px" fontWeight={100}>
-                            None Drafted
-                        </Text>
-                    </Box>
+        <Tooltip
+            contentProps={{
+                css: {
+                    '--tooltip-bg': 'rgba(255, 255, 255, 1)',
+                    borderRadius: '6px'
+                }
+            }}
+            disabled={stats == null}
+            content={<Points player={player} />}
+        >
+            <HStack w="100%" justifyContent={'space-between'}>
+                <HStack>
+                    <Center
+                        bg="linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)"
+                        h="40px"
+                        w="40px"
+                        fontSize="12px"
+                        borderRadius="20px"
+                    >
+                        {position}
+                    </Center>
+                    {player ? (
+                        <>
+                            <Text fontSize="12px" textAlign={'left'}>
+                                {player.player.name}
+                            </Text>
+                            {dropPlayer && <Button onClick={() => dropPlayer(player.player.id)}>X</Button>}
+                        </>
+                    ) : (
+                        <Box>
+                            <Text color="gray.400" fontSize="12px" fontWeight={100}>
+                                None Drafted
+                            </Text>
+                        </Box>
+                    )}
+                </HStack>
+                {showScore && player && (
+                    <Text
+                        fontSize="12px"
+                        fontWeight={'bold'}
+                        color={
+                            (player as any)?.stats == null
+                                ? 'black'
+                                : player.score < 5
+                                  ? '#f94144'
+                                  : player.score < 10
+                                    ? '#f9844a'
+                                    : player.score < 20
+                                      ? '#90be6d'
+                                      : '#277da1'
+                        }
+                    >
+                        {player?.score} pts
+                    </Text>
                 )}
             </HStack>
-            {showScore && player && (
-                <Text
-                    fontSize="12px"
-                    color={
-                        player.score < 5 ? 'red' : player.score < 10 ? 'yellow' : player.score < 20 ? 'green' : 'blue'
-                    }
-                >
-                    {player?.score} pts
-                </Text>
-            )}
-        </HStack>
+        </Tooltip>
+    );
+}
+const wr_stats = [];
+const rb_stats = [];
+const qb_stats = ['pass_att', 'pass_yds', 'pass_td', 'rush_att', 'rush_yds', 'rush_td', 'fum', 'int'];
+function mapStatName(stat) {
+    switch (stat) {
+        case 'pass_att':
+            return 'Passing';
+        case 'pass_yds':
+            return 'Passing Yds';
+        case 'pass_td':
+            return 'Passing TD';
+        case 'rush_att':
+            return 'Rushing';
+        case 'rush_yds':
+            return 'Rushing Yds';
+        case 'rush_td':
+            return 'Rushing TD';
+        case 'fum':
+            return 'Fumbles';
+        case 'int':
+            return 'Ints';
+    }
+}
+function Points({ player }: { player: TeamPlayer }) {
+    const stats = (player as any)?.stats;
+    const stat_columns = player.player.is_qb ? qb_stats : player.player.is_rb ? rb_stats : wr_stats;
+    return (
+        <Box color="black" p={4}>
+            <Heading fontSize="14px" mb={2} fontWeight={'bold'}>
+                POINTS: {player.score}
+            </Heading>
+            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                {stat_columns?.map((stat) => (
+                    <VStack alignItems={'flex-start'} key={stat} gap={0.5}>
+                        <Text color={'gray.500'} fontSize="12px">
+                            {mapStatName(stat).toUpperCase()}
+                        </Text>
+                        <Text fontSize="12px" fontWeight={'bold'}>
+                            {stat === 'pass_att' ? `${stats['comp']}/${stats[stat]}` : (stats[stat] ?? 0)}
+                        </Text>
+                    </VStack>
+                ))}
+            </Grid>
+        </Box>
     );
 }
 
