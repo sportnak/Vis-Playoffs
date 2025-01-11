@@ -191,8 +191,7 @@ function PlayerItem({
                 justifyContent={'space-between'}
                 onMouseEnter={() => setOpen(true)}
                 onMouseLeave={() => setOpen(false)}
-                onClick={() => setOpen(!true)}
-                onBlur={() => setOpen(false)}
+                onClick={() => setOpen((op) => !op)}
             >
                 <HStack>
                     <Center
