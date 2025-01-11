@@ -161,6 +161,23 @@ export function LeagueHeader() {
                         Manage
                     </Button>
                 )}
+                {league?.admin_id === user?.id && (
+                    <Button
+                        onClick={() => changeTab('teams')}
+                        variant="plain"
+                        _hover={{ textDecoration: 'underline' }}
+                        style={
+                            tab === 'teams'
+                                ? {
+                                      fontWeight: 'bold',
+                                      textDecoration: 'underline'
+                                  }
+                                : null
+                        }
+                    >
+                        Teams
+                    </Button>
+                )}
             </HStack>
             <Box>
                 <InputGroup

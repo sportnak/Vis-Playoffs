@@ -14,12 +14,13 @@ import { useForm } from 'react-hook-form';
 import { inviteMember, removeMember, resetPools } from '@/actions/league';
 import { Member } from '@/app/types';
 import { Toaster, toaster } from '@/components/ui/toaster';
-import { useAppDispatch, useUser } from '@/app/hooks';
+import { useAppDispatch, useLeagues, useUser } from '@/app/hooks';
 import { setMembers } from '@/store/leagueSlice';
 import { useCallback } from 'react';
 
 export default function MembersTable({ league_id, members }: { league_id: number; members: Member[] }) {
     const { handleSubmit, control } = useForm<{ email: string }>();
+    const { refresh } = useLeagues();
     const { user } = useUser();
     const dispatch = useAppDispatch();
     const onSubmit = async (data: { email: string }) => {
@@ -36,7 +37,7 @@ export default function MembersTable({ league_id, members }: { league_id: number
             title: 'Member Invited',
             type: 'success'
         });
-        dispatch(setMembers(null));
+        refresh();
     };
 
     const handleRemoveMember = useCallback(

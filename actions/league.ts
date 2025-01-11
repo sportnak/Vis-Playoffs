@@ -123,6 +123,7 @@ export async function loadTeams({ pool_ids }: { pool_ids: number[] }) {
     const client = await createClient();
 
     const pools_response = await client.from('pools').select('*').in('id', pool_ids);
+    console.log(pools_response)
     const team_ids = pools_response.data.map((x) => x.draft_order);
     const response = await client.from('team').select('*, team_players(*, player(*))').in('id', team_ids)
     return response.data
@@ -136,7 +137,7 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
     let existing = await client.from('team').select('*').eq('league_id', pools[0].league_id)
     if (!existing.data.length) {
         for (const member of members) {
-            await client
+            const r = await client
                 .from('team')
                 .insert({
                     member_id: member.id,
@@ -200,7 +201,6 @@ export async function loadNFLPlayers(
     const client = await createClient();
     const nfl_round = await client.from('nfl_rounds').select('*').eq('id', query.round_id);
     const games = await client.from('games').select('*').eq('nfl_round_id', nfl_round.data[0].id);
-    console.log(games)
     const teams = await client
         .from('nfl_team')
         .select('*')
@@ -331,15 +331,19 @@ export async function draftPlayer(league_id: number, round_id: number, pool_id: 
     });
 
     if (!response.error) {
-        const next = pool.data[0].draft_order;
+        const next: number[]= pool.data[0].draft_order;
         const curr_index = next.findIndex((x) => x === team_id);
         const next_index = curr_index === next.length - 1 ? 0 : curr_index + 1;
+        if (next_index === 0) {
+             next.reverse()
+        }
+        console.log(next, next_index)
         const next_team_count = (await client.from('team_players').select('*').eq('pool_id', pool_id).eq('team_id', next[next_index])).count ?? 0;
         if (settings.data[0].max_team_size === next_team_count) {
             await client.from('pools').update({ current: null, status: 'complete' }).eq('id', pool_id);
             return response
         }
-        const res = await client.from('pools').update({ current: next[next_index] }).eq('id', pool_id);
+        const res = await client.from('pools').update({ draft_order: next, current: next[next_index] }).eq('id', pool_id);
         if (res.error) {
             return res;
         }
@@ -430,6 +434,7 @@ export async function loadPoints({ league_id, round_id }: { round_id?: number; l
             'league_id',
             league_id,
         );
+    
     
     const player_ids = teamsWithPlayers.map((x) => x.players.map((x) => x.player.id)).flat();
     const { data: stats } = await client.from('stats').select('*').in('player_id', player_ids);

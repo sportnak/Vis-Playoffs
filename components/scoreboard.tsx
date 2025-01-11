@@ -32,8 +32,9 @@ export function Scoreboard({ league_id }) {
                             totalPoints(teamSeason.find((t) => t.id === a.id))
                     )
                     .map((team) => {
-                        console.log(pools, currentRound?.id);
-                        const pool = pools.find((pool) => pool.round_id === currentRound?.id);
+                        const pool = pools.find(
+                            (pool) => pool.draft_order.includes(team.id) && pool.round_id === currentRound?.id
+                        );
                         return (
                             <Box
                                 key={team.id}

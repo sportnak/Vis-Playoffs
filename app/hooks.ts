@@ -89,25 +89,25 @@ export function useLeague(league_id: string) {
     return { league };
 }
 
-export function useLeagues(): { leagues: any } {
+export function useLeagues() {
     const leagues = useAppSelector((state) => state.app.leagues);
     const dispatch = useAppDispatch();
     const { user } = useUser();
+
+    const load = useCallback(async () => {
+      const response = await loadLeagues(user);
+      dispatch(setLeagues(response.data));
+    }, [user])
 
     useEffect(() => {
         if (leagues != null || user == null) {
             return;
         }
 
-        async function load() {
-            const response = await loadLeagues(user);
-            dispatch(setLeagues(response.data));
-          }
-
         load();
     }, [leagues, user]);
 
-    return { leagues };
+    return { leagues, refresh: load };
 }
 
 import { useDispatch, useSelector } from 'react-redux';

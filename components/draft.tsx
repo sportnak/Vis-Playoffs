@@ -12,7 +12,7 @@ export function Draft({ leagueId, roundId }) {
     const app = useAppSelector((state) => state.app);
     const { league, member, rounds } = app;
     const { user } = useUser();
-    const { pool, draftPlayer, refreshDraft, teams, team } = useDraft(league?.id, parseInt(roundId as string), user);
+    const { pool, draftPlayer, refreshDraft, teams, team } = useDraft(league?.id, parseInt(roundId as string), member);
     const currentRound = useMemo(() => {
         return rounds?.find((round) => round.id === parseInt(roundId as string));
     }, [rounds, roundId]);

@@ -201,6 +201,7 @@ function createTeam(team: Team, counts, poolId: number) {
     const flexs = [];
     const sfs = [];
 
+    console.log(team, counts);
     if (!team || !counts.qbCount) {
         return {};
     }

@@ -89,8 +89,9 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
         setCurrTurn(teams.find((x) => x.id === pool.current));
     }, [pool, teams]);
     const handleDraftPlayer = useCallback(
-        async (player_id: number) => {
-            const response = await draftPlayer(player_id);
+        async (player_id: number, team_id: number) => {
+            console.log(player_id, team_id);
+            const response = await draftPlayer(player_id, team_id);
             if (response.error) {
                 toaster.create({
                     type: 'error',
@@ -124,7 +125,9 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                             <Button variant="outline">Cancel</Button>
                         </DialogActionTrigger>
                         <DialogActionTrigger asChild>
-                            <Button onClick={() => handleDraftPlayer(playerConfirmation?.id)}>Save</Button>
+                            <Button onClick={() => handleDraftPlayer(playerConfirmation?.id, pool?.current)}>
+                                Save
+                            </Button>
                         </DialogActionTrigger>
                     </DialogFooter>
                     <DialogCloseTrigger />
@@ -216,11 +219,11 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                     <Table.Cell>{player.nfl_team.name}</Table.Cell>
                                     <Table.Cell>{mapPos(player)}</Table.Cell>
                                     <Table.Cell>
-                                        {player.team_players?.length !== 0 ? (
+                                        {player.team_players.filter((x) => x.pool_id === pool?.id)?.length !== 0 ? (
                                             'Drafted'
                                         ) : (
                                             <Button
-                                                disabled={pool.current !== team?.id}
+                                                disabled={false}
                                                 as="div"
                                                 variant="ghost"
                                                 style={{
@@ -235,7 +238,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                                     background: '#2482A6'
                                                 }}
                                                 onClick={() => {
-                                                    if (pool.current !== team?.id) {
+                                                    if (false) {
                                                         return;
                                                     }
 

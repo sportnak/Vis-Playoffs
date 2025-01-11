@@ -7,16 +7,14 @@ import { useLeague, useLeagues, useUser } from '@/app/hooks';
 
 export default function Page() {
     // const { leagues } = useLeagues();
-    // console.log(leagues);
     // useEffect(() => {
-    //     if (leagues) {
+    //     if (leagues?.length) {
     //         redirect(`/leagues/${leagues[0].id}`);
     //     }
     // }, [leagues]);
 
     return (
         <main className="flex flex-col gap-8 sm:gap-16">
-            <LeaguesList />
             <InviteList />
         </main>
     );

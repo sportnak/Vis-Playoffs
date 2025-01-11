@@ -8,7 +8,7 @@ export function ReduxProvider({ children }) {
     const { user } = useUser();
     return (
         <ReactReduxProvider store={store}>
-            {user ? <Header /> : null}
+            <Header />
             {children}
         </ReactReduxProvider>
     );

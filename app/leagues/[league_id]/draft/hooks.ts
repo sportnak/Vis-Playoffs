@@ -5,7 +5,7 @@ import { setMember, setPool, setTeam } from "@/store/draftSlice";
 import { User } from "@supabase/supabase-js";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useRounds, useTeams } from "../manage/hooks";
-import { Team } from "@/app/types";
+import { Member, Team } from "@/app/types";
 
 
 export function useNFLTeams() {
@@ -52,8 +52,7 @@ export function useNFLPlayers(query: { name?: string, pos: string, team_ids?: nu
 
 }
 
-export function useDraft(league_id: number, round_id: number, user: User) {
-    const member = useAppSelector((state) => state.draft.member);
+export function useDraft(league_id: number, round_id: number, member: Member) {
     const pool = useAppSelector((state) => state.draft.pool);
     const team = useAppSelector((state) => state.draft.team);
     const pool_id = useMemo(() => [pool?.id], [pool])
@@ -69,33 +68,26 @@ export function useDraft(league_id: number, round_id: number, user: User) {
     }, [team, pool,])
 
     const load = useCallback(async() => {
-        if (!user) {
-            return
-        }
-
-        const member_response = await loadMember(league_id, user);
-        const member = member_response.data?.[0]
-        dispatch(setMember(member));
-
-        
-        const pool_response = await loadPool(round_id, league_id);
-        dispatch(setPool(pool_response.data[0]));
         const team = await loadTeam(league_id, member.id)
         dispatch(setTeam(team.data[0]))
-    }, [league_id, round_id, user, dispatch]);
+        const pool_response = await loadPool(round_id, league_id, );
+        const pool = pool_response.data.find(pool => pool.draft_order.includes(team.data[0].id))
+        console.log(pool_response)
+        dispatch(setPool(pool));
+    }, [league_id, round_id, dispatch]);
 
     useEffect(() => {
         load();
     }, [load]);
 
-    const handleDraftPlayer = useCallback(async (player_id: number) => {
-        const response = await draftPlayer(league_id, round_id, pool.id, team.id, player_id)
+    const handleDraftPlayer = useCallback(async (player_id: number, team_id: number) => {
+        console.log(player_id, team_id)
+        const response = await draftPlayer(league_id, round_id, pool.id, team_id, player_id)
         return response
     }, [pool, team, round_id, league_id]);
 
     return {
         team,
-        member,
         pool,
         draftPlayer: handleDraftPlayer,
         refreshDraft: load,

@@ -7,6 +7,7 @@ import { Scoreboard } from '@/components/scoreboard';
 import { LeagueHeader } from '@/components/league-header';
 import Rounds from '@/components/rounds';
 import { Draft } from '@/components/draft';
+import MembersTable from '@/components/members';
 
 export default function League() {
     const { league_id } = useParams();
@@ -43,6 +44,15 @@ export default function League() {
             <Box>
                 <LeagueHeader />
                 <Draft leagueId={app.league?.id} roundId={app.round_id} />
+            </Box>
+        );
+    }
+
+    if (app.tab === 'teams') {
+        return (
+            <Box>
+                <LeagueHeader />
+                <MembersTable league_id={app.league?.id} members={app.league.league_members} />
             </Box>
         );
     }

@@ -33,7 +33,6 @@ export function useRounds(league_id: number) {
     }, [league_id])
 
     useEffect(() => {
-        console.log(rounds, league_id)
         if (rounds?.length || league_id == null) {
             return;
         }
@@ -72,6 +71,7 @@ export function useTeams(pool_ids: number[]) {
             return
         }
         const response = await loadTeams({ pool_ids });
+        console.log(response)
         setTeams(response);
     }, [pool_ids, ])
 
