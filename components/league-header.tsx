@@ -12,7 +12,8 @@ import {
     SelectLabel,
     SelectRoot,
     SelectTrigger,
-    SelectValueText
+    SelectValueText,
+    VStack
 } from '@chakra-ui/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import teams from './teams';
@@ -92,7 +93,15 @@ export function LeagueHeader() {
             }
         }, 500);
     }, [localName, updateName]);
+    const [innerWidth, setInnerWidth] = useState(window.innerWidth);
+    useEffect(() => {
+        const handleResize = () => setInnerWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    const isMobile = innerWidth < 768;
 
+    const Component = isMobile ? VStack : HStack;
     return (
         <HStack
             justifyContent="space-between"
@@ -104,46 +113,16 @@ export function LeagueHeader() {
             }}
             flexWrap={'wrap'}
         >
-            <HStack>
-                <Button
-                    variant="plain"
-                    _hover={{
-                        textDecoration: 'underline'
-                    }}
-                    onClick={() => changeTab('scoreboard')}
-                    style={
-                        tab === 'scoreboard'
-                            ? {
-                                  fontWeight: 'bold',
-                                  textDecoration: 'underline'
-                              }
-                            : null
-                    }
-                >
-                    Scoreboard
-                </Button>
-                <Button
-                    onClick={() => changeTab('draft')}
-                    variant="plain"
-                    _hover={{ textDecoration: 'underline' }}
-                    style={
-                        tab === 'draft'
-                            ? {
-                                  fontWeight: 'bold',
-                                  textDecoration: 'underline'
-                              }
-                            : null
-                    }
-                >
-                    Draft
-                </Button>
-                {league?.admin_id === user?.id && (
+            {!isMobile && (
+                <HStack>
                     <Button
-                        onClick={() => changeTab('manage')}
                         variant="plain"
-                        _hover={{ textDecoration: 'underline' }}
+                        _hover={{
+                            textDecoration: 'underline'
+                        }}
+                        onClick={() => changeTab('scoreboard')}
                         style={
-                            tab === 'manage'
+                            tab === 'scoreboard'
                                 ? {
                                       fontWeight: 'bold',
                                       textDecoration: 'underline'
@@ -151,16 +130,14 @@ export function LeagueHeader() {
                                 : null
                         }
                     >
-                        Manage
+                        Scoreboard
                     </Button>
-                )}
-                {league?.admin_id === user?.id && (
                     <Button
-                        onClick={() => changeTab('teams')}
+                        onClick={() => changeTab('draft')}
                         variant="plain"
                         _hover={{ textDecoration: 'underline' }}
                         style={
-                            tab === 'teams'
+                            tab === 'draft'
                                 ? {
                                       fontWeight: 'bold',
                                       textDecoration: 'underline'
@@ -168,11 +145,45 @@ export function LeagueHeader() {
                                 : null
                         }
                     >
-                        Teams
+                        Draft
                     </Button>
-                )}
-            </HStack>
-            <HStack>
+                    {league?.admin_id === user?.id && (
+                        <Button
+                            onClick={() => changeTab('manage')}
+                            variant="plain"
+                            _hover={{ textDecoration: 'underline' }}
+                            style={
+                                tab === 'manage'
+                                    ? {
+                                          fontWeight: 'bold',
+                                          textDecoration: 'underline'
+                                      }
+                                    : null
+                            }
+                        >
+                            Manage
+                        </Button>
+                    )}
+                    {league?.admin_id === user?.id && (
+                        <Button
+                            onClick={() => changeTab('teams')}
+                            variant="plain"
+                            _hover={{ textDecoration: 'underline' }}
+                            style={
+                                tab === 'teams'
+                                    ? {
+                                          fontWeight: 'bold',
+                                          textDecoration: 'underline'
+                                      }
+                                    : null
+                            }
+                        >
+                            Teams
+                        </Button>
+                    )}
+                </HStack>
+            )}
+            <Component alignItems="flex-start">
                 <Box>
                     <Select
                         value={roundItems.items.find((x) => x.value === selectedRoundId)}
@@ -198,7 +209,7 @@ export function LeagueHeader() {
                         />
                     </InputGroup>
                 </Box>
-            </HStack>
+            </Component>
         </HStack>
     );
 }

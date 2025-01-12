@@ -2,13 +2,20 @@
 import Link from 'next/link';
 import { Box, Button, Icon, Separator, Theme, VStack } from '@chakra-ui/react';
 import { createClient } from '@/utils/supabase/client';
-import { GrHomeRounded } from 'react-icons/gr';
+import { GrHomeRounded, GrScorecard } from 'react-icons/gr';
 import { HiOutlineLogout } from 'react-icons/hi';
-import { useLeagues } from '@/app/hooks';
+import { useAppDispatch, useAppSelector, useLeague, useLeagues } from '@/app/hooks';
 import { Tooltip } from './ui/tooltip';
 import { useParams } from 'next/navigation';
+import { setTab } from '@/store/appSlice';
+import { useCallback } from 'react';
+import { MdAdminPanelSettings, MdOutlinePeopleAlt, MdOutlineScoreboard } from 'react-icons/md';
 
 export default function Header() {
+    const { league_id } = useParams();
+    const { tab, user, teamName, team } = useAppSelector((state) => state.app);
+    const { league } = useLeague(league_id as string);
+    const dispatch = useAppDispatch();
     const handleSignOut = async () => {
         // Logic for signing out the user
         const client = await createClient();
@@ -16,8 +23,11 @@ export default function Header() {
         window.location.href = '/login';
     };
 
+    const changeTab = useCallback((tab: string) => {
+        dispatch(setTab(tab));
+    }, []);
+
     const { leagues } = useLeagues();
-    const { league_id } = useParams();
 
     return (
         <Theme appearance="dark">
@@ -45,6 +55,34 @@ export default function Header() {
                             </Icon>
                         </Link>
                     </Button>
+
+                    <Button variant="ghost" onClick={() => changeTab('scoreboard')}>
+                        <Icon fontSize="20px">
+                            <MdOutlineScoreboard />
+                        </Icon>
+                    </Button>
+
+                    <Button variant="ghost" onClick={() => changeTab('draft')}>
+                        <Icon fontSize="20px">
+                            <GrScorecard />
+                        </Icon>
+                    </Button>
+
+                    {league?.admin_id === user?.id && (
+                        <Button variant="ghost" onClick={() => changeTab('manage')}>
+                            <Icon fontSize="20px">
+                                <MdAdminPanelSettings />
+                            </Icon>
+                        </Button>
+                    )}
+
+                    {league?.admin_id === user?.id && (
+                        <Button variant="ghost" onClick={() => changeTab('teams')}>
+                            <Icon fontSize="20px">
+                                <MdOutlinePeopleAlt />
+                            </Icon>
+                        </Button>
+                    )}
                     <Separator />
                     {leagues?.map((x) => (
                         <Tooltip content={x.name} key={x.id}>

@@ -72,7 +72,6 @@ export function Scoreboard({ league_id }) {
                             }),
                             {}
                         );
-                        console.log(playerCounts);
                         const avg = pointsBack / yetToPlay.length;
                         return (
                             <Box
