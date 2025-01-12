@@ -73,6 +73,7 @@ export function Scoreboard({ league_id }) {
                             {}
                         );
                         const avg = pointsBack / yetToPlay.length;
+                        const roundScore = pool ? parseFloat(team.poolScores[pool?.id].toFixed(2)) : 0;
                         return (
                             <Box
                                 key={team.id}
@@ -123,7 +124,7 @@ export function Scoreboard({ league_id }) {
                                 />
                                 <HStack fontSize="14px" mt="10px" justifyContent={'flex-end'}>
                                     <Text>Round Score:</Text>
-                                    <Text fontWeight="bold">{parseFloat(team.poolScores[pool?.id].toFixed(2))}</Text>
+                                    <Text fontWeight="bold">{roundScore}</Text>
                                 </HStack>
                             </Box>
                         );
