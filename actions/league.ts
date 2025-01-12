@@ -447,6 +447,22 @@ export async function loadPoints({ league_id, round_id }: { round_id?: number; l
                 };
             })
         };
+    }).map(team => {
+        const poolScores = {}
+        let seasonScore = 0
+        for (const player of team.team_players) {
+            seasonScore += player.score
+            if (!poolScores[player.pool_id]) {
+                poolScores[player.pool_id] = player.score;
+            } else {
+                poolScores[player.pool_id] += player.score;
+            }
+        }
+        return {
+            ...team,
+            poolScores,
+            seasonScore: parseFloat(seasonScore.toFixed(2)),
+        }
     })
 
     return teamsWithPlayersWithStats

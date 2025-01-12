@@ -244,7 +244,7 @@ function PlayerItem({
 const wr_stats = ['rec', 'rec_yds', 'rec_td', 'fum', 'rush_att', 'rush_yds', 'rush_td'];
 const rb_stats = ['rush_att', 'rush_yds', 'rush_td', 'fum', 'rec', 'rec_yds', 'rec_td'];
 const qb_stats = ['pass_att', 'pass_yds', 'pass_td', 'rush_att', 'rush_yds', 'rush_td', 'fum', 'int'];
-function mapStatName(stat) {
+export function mapStatName(stat) {
     switch (stat) {
         case 'pass_att':
             return 'Passing';
