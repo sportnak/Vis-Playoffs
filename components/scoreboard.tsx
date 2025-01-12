@@ -123,7 +123,7 @@ export function Scoreboard({ league_id }) {
                                 />
                                 <HStack fontSize="14px" mt="10px" justifyContent={'flex-end'}>
                                     <Text>Round Score:</Text>
-                                    <Text fontWeight="bold">{team.poolScores[pool?.id]}</Text>
+                                    <Text fontWeight="bold">{parseFloat(team.poolScores[pool?.id].toFixed(2))}</Text>
                                 </HStack>
                             </Box>
                         );
