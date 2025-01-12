@@ -82,16 +82,19 @@ export function Scoreboard({ league_id }) {
                                 borderRadius="6px"
                                 w="300px"
                             >
-                                <HStack justifyContent={'space-between'}>
-                                    <Heading fontSize="18px" fontWeight={100}>
-                                        {team.name} ({team.seasonScore})
-                                    </Heading>
+                                <VStack alignItems={'flex-start'} flexWrap={'wrap'} justifyContent={'space-between'}>
+                                    <HStack>
+                                        <Heading fontSize="18px" fontWeight={100} truncate>
+                                            {team.name}
+                                        </Heading>
+                                        <Text fontSize="12px">({team.seasonScore})</Text>
+                                    </HStack>
                                     <Text fontSize="12px">
                                         {Object.entries(playerCounts)
                                             .map(([key, value]) => `${key}: ${value}`)
                                             .join(', ')}
                                     </Text>
-                                </HStack>
+                                </VStack>
                                 <HStack>
                                     <Text
                                         fontSize="12px"
