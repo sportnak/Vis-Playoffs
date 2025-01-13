@@ -23,14 +23,14 @@ export function useNFLTeams() {
       return { nflTeams, load }
 }
 
-export function useNFLPlayers(query: { name?: string, pos: string, team_ids?: number[], round_id: string }, pool_id: number) {
+export function useNFLPlayers(query: { name?: string, pos: string, team_ids?: number[], round_id: string }, pool_id: number, league_id: number) {
     const [nflPlayers, setNFLPlayers] = useState<any>()
 
     const load = useCallback(async() => {
         if (!pool_id) {
             return
         }
-        const response = await loadNFLPlayers(query, pool_id)
+        const response = await loadNFLPlayers(query, pool_id, league_id)
         setNFLPlayers(response.data);
     }, [query, pool_id])
 

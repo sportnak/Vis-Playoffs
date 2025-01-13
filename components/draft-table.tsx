@@ -74,7 +74,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
         }));
     }, []);
 
-    const { nflPlayers, load } = useNFLPlayers(query, pool?.id);
+    const { nflPlayers, load } = useNFLPlayers(query, pool?.id, pool?.league_id);
     useEffect(() => {
         setQuery((x) => ({ ...x, round_id: round_id.toString() }));
     }, [round_id]);
@@ -219,49 +219,62 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                 <Table.ColumnHeader>Name</Table.ColumnHeader>
                                 <Table.ColumnHeader>Team</Table.ColumnHeader>
                                 <Table.ColumnHeader>Pos</Table.ColumnHeader>
+                                <Table.ColumnHeader>ADP</Table.ColumnHeader>
                                 <Table.ColumnHeader></Table.ColumnHeader>
                             </Table.Row>
                         </Table.Header>
                         <Table.Body>
-                            {nflPlayers?.map((player) => (
-                                <Table.Row background={'none'} key={player.id}>
-                                    <Table.Cell>{player.name}</Table.Cell>
-                                    <Table.Cell>{player.nfl_team.name}</Table.Cell>
-                                    <Table.Cell>{mapPos(player)}</Table.Cell>
-                                    <Table.Cell>
-                                        {player.team_players.filter((x) => x.pool_id === pool?.id)?.length !== 0 ? (
-                                            'Drafted'
-                                        ) : (
-                                            <Button
-                                                disabled={false}
-                                                as="div"
-                                                variant="ghost"
-                                                style={{
-                                                    background: '#3D4946',
-                                                    padding: '10px',
-                                                    borderRadius: '8px',
-                                                    height: '30px',
-                                                    width: '75px',
-                                                    color: 'white'
-                                                }}
-                                                _hover={{
-                                                    background: '#2482A6'
-                                                }}
-                                                onClick={() => {
-                                                    if (false) {
-                                                        return;
-                                                    }
+                            {nflPlayers?.map((player) => {
+                                let adp: number | string =
+                                    player.team_players.reduce((acc, x) => acc + x.pick_number, 0) /
+                                    player.team_players.length;
+                                if (!isNaN(adp)) {
+                                    adp = parseFloat(adp.toFixed(2));
+                                } else {
+                                    adp = '';
+                                }
 
-                                                    setPlayerConfirmation(player);
-                                                    dialog.setOpen(true);
-                                                }}
-                                            >
-                                                Draft
-                                            </Button>
-                                        )}
-                                    </Table.Cell>
-                                </Table.Row>
-                            ))}
+                                return (
+                                    <Table.Row background={'none'} key={player.id}>
+                                        <Table.Cell>{player.name}</Table.Cell>
+                                        <Table.Cell>{player.nfl_team.name}</Table.Cell>
+                                        <Table.Cell>{mapPos(player)}</Table.Cell>
+                                        <Table.Cell>{adp}</Table.Cell>
+                                        <Table.Cell>
+                                            {player.team_players.filter((x) => x.pool_id === pool?.id)?.length !== 0 ? (
+                                                'Drafted'
+                                            ) : (
+                                                <Button
+                                                    disabled={false}
+                                                    as="div"
+                                                    variant="ghost"
+                                                    style={{
+                                                        background: '#3D4946',
+                                                        padding: '10px',
+                                                        borderRadius: '8px',
+                                                        height: '30px',
+                                                        width: '75px',
+                                                        color: 'white'
+                                                    }}
+                                                    _hover={{
+                                                        background: '#2482A6'
+                                                    }}
+                                                    onClick={() => {
+                                                        if (false) {
+                                                            return;
+                                                        }
+
+                                                        setPlayerConfirmation(player);
+                                                        dialog.setOpen(true);
+                                                    }}
+                                                >
+                                                    Draft
+                                                </Button>
+                                            )}
+                                        </Table.Cell>
+                                    </Table.Row>
+                                );
+                            })}
                         </Table.Body>
                     </Table.Root>
                 )}

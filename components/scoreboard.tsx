@@ -73,7 +73,8 @@ export function Scoreboard({ league_id }) {
                             {}
                         );
                         const avg = pointsBack / yetToPlay.length;
-                        const roundScore = pool ? parseFloat(team.poolScores[pool?.id].toFixed(2)) : 0;
+                        const roundScore =
+                            pool && team.poolScores[pool?.id] ? parseFloat(team.poolScores[pool?.id].toFixed(2)) : 0;
                         return (
                             <Box
                                 key={team.id}
@@ -90,7 +91,7 @@ export function Scoreboard({ league_id }) {
                                         </Heading>
                                         <Text fontSize="12px">({team.seasonScore})</Text>
                                     </HStack>
-                                    <Text fontSize="12px">
+                                    <Text fontSize="12px" h="12px">
                                         {Object.entries(playerCounts)
                                             .map(([key, value]) => `${key}: ${value}`)
                                             .join(', ')}

@@ -19,14 +19,21 @@ const nameConfig: Config = {
 export async function loadLeagues(user: User) {
     const client = await createClient();
     const members = await client.from('league_members').select('*').eq('email', user?.email);
-    const response = await client.from('league').select('*, league_members(*), team(*)').or(`id.in.(${members.data.map((x) => x.league_id)}), admin_id.eq.${user.id}`);
+    const response = await client
+        .from('league')
+        .select('*, league_members(*), team(*)')
+        .or(`id.in.(${members.data.map((x) => x.league_id)}), admin_id.eq.${user.id}`);
     return response;
 }
 
 export async function loadLeague(league_id: number, user: User) {
     const client = await createClient();
     const members = await client.from('league_members').select('*').eq('email', user?.email);
-    const response = await client.from('league').select('*, league_members(*), team(*)').eq('id', league_id).or(`id.in.(${members.data.map((x) => x.league_id)}), admin_id.eq.${user.id}`);
+    const response = await client
+        .from('league')
+        .select('*, league_members(*), team(*)')
+        .eq('id', league_id)
+        .or(`id.in.(${members.data.map((x) => x.league_id)}), admin_id.eq.${user.id}`);
     return response;
 }
 
@@ -58,7 +65,11 @@ export async function loadMembers({ league_id }: { league_id: number }) {
 
 export async function loadRounds(league_id: number) {
     const client = await createClient();
-    const response = await client.from('nfl_rounds').select('*, round_settings(*), pools(*)').eq('pools.league_id', league_id).eq('round_settings.league_id', league_id);
+    const response = await client
+        .from('nfl_rounds')
+        .select('*, round_settings(*), pools(*)')
+        .eq('pools.league_id', league_id)
+        .eq('round_settings.league_id', league_id);
     return response;
 }
 
@@ -97,7 +108,7 @@ export async function loadPools({ league_id, round_id }: { league_id: number; ro
     const client = await createClient();
     const request = client.from('pools').select('*').eq('league_id', league_id);
     if (round_id) {
-        request.eq('round_id', round_id)
+        request.eq('round_id', round_id);
     }
 
     return await request;
@@ -105,14 +116,17 @@ export async function loadPools({ league_id, round_id }: { league_id: number; ro
 
 export async function createPools(count: number, league_id: number, round_id: number) {
     const client = await createClient();
-    const result = []
+    const result = [];
     for (let i = 0; i < count; i++) {
-        const res = await client.from('pools').insert({
-            round_id,
-            league_id,
-            name: uniqueNamesGenerator(config)
-        }).select();
-        result.push(res.data[0])
+        const res = await client
+            .from('pools')
+            .insert({
+                round_id,
+                league_id,
+                name: uniqueNamesGenerator(config)
+            })
+            .select();
+        result.push(res.data[0]);
     }
 
     return result;
@@ -123,8 +137,8 @@ export async function loadTeams({ pool_ids }: { pool_ids: number[] }) {
 
     const pools_response = await client.from('pools').select('*').in('id', pool_ids);
     const team_ids = pools_response.data.map((x) => x.draft_order);
-    const response = await client.from('team').select('*, team_players(*, player(*))').in('id', team_ids)
-    return response.data
+    const response = await client.from('team').select('*, team_players(*, player(*))').in('id', team_ids);
+    return response.data;
 }
 
 export async function assignPools({ members, pools }: { members: Member[]; pools: Pool[] }) {
@@ -132,7 +146,7 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
     const loops = members.length / pools.length;
     const cloned_members = JSON.parse(JSON.stringify(members));
     const pool_map: { [pool_id: number]: number[] } = {};
-    let existing = await client.from('team').select('*').eq('league_id', pools[0].league_id)
+    let existing = await client.from('team').select('*').eq('league_id', pools[0].league_id);
     if (!existing.data.length) {
         for (const member of members) {
             const r = await client
@@ -144,7 +158,7 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
                 })
                 .select();
         }
-        existing = await client.from('team').select('*').eq('league_id', pools[0].league_id)
+        existing = await client.from('team').select('*').eq('league_id', pools[0].league_id);
     }
 
     const teams: Team[] = existing.data;
@@ -156,7 +170,7 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
             const team_index = Math.floor(Math.random() * teams.length);
             const team = teams[team_index];
             teams.splice(team_index, 1);
-            
+
             pool_map[pools[j].id] = [...(pool_map[pools[j].id] || []), team.id];
         }
     }
@@ -182,7 +196,7 @@ export async function updateName(name: string, team_id: number) {
         .update({
             name
         })
-        .eq('id', team_id)
+        .eq('id', team_id);
     return response;
 }
 
@@ -194,7 +208,8 @@ export async function loadNFLTeams() {
 
 export async function loadNFLPlayers(
     query: { drafted?: boolean; pos: string; name?: string; team_ids?: number[]; round_id: string },
-    pool_id: number
+    pool_id: number,
+    league_id: number
 ) {
     const client = await createClient();
     const nfl_round = await client.from('nfl_rounds').select('*').eq('id', query.round_id);
@@ -203,12 +218,21 @@ export async function loadNFLPlayers(
         .from('nfl_team')
         .select('*')
         .in('id', games.data.map((x) => [x.nfl_team_1, x.nfl_team_2]).flat());
+    const league_pools = await client
+        .from('pools')
+        .select('*')
+        .eq('league_id', league_id)
+        .or(`status.eq.complete, id.eq.${pool_id}`);
     const request = client
         .from('player')
         .select('*, nfl_team(*), team_players(*)')
         .in(
             'nfl_team_id',
             teams.data.map((x) => x.id)
+        )
+        .in(
+            'team_players.pool_id',
+            league_pools.data.map((x) => x.id)
         );
     if (query.name?.length) {
         request.ilike('name', `%${query.name}%`);
@@ -253,11 +277,7 @@ export async function loadNFLPlayers(
 
 export async function loadPool(round_id: number, league_id: number) {
     const client = await createClient();
-    const response = await client
-        .from('pools')
-        .select('*')
-        .eq('round_id', round_id)
-        .eq('league_id', league_id)
+    const response = await client.from('pools').select('*').eq('round_id', round_id).eq('league_id', league_id);
     return response;
 }
 
@@ -272,7 +292,7 @@ export async function loadMember(league_id: number, user: User) {
     const response = await client.from('league_members').select('*').eq('league_id', league_id).eq('email', user.email);
 
     if (response.data?.[0] && response.data?.[0]?.user_id == null) {
-        await client.from('league_members').update({ user_id: user.id }).eq('id', response.data?.[0].id)
+        await client.from('league_members').update({ user_id: user.id }).eq('id', response.data?.[0].id);
     }
     return response;
 }
@@ -291,11 +311,21 @@ export async function loadTeamPlayers(pool_id: number) {
     return response;
 }
 
-export async function draftPlayer(league_id: number, round_id: number, pool_id: number, team_id: number, player_id: number) {
+export async function draftPlayer(
+    league_id: number,
+    round_id: number,
+    pool_id: number,
+    team_id: number,
+    player_id: number
+) {
     const client = await createClient();
     const player = await client.from('player').select('*').eq('id', player_id);
-    const team = await client.from('team_players').select('*, player(*)').eq('team_id', team_id);
-    const settings = await client.from('round_settings').select('*').eq('round_id', round_id).eq('league_id', league_id);
+    const team = await client.from('team_players').select('*, player(*)').eq('team_id', team_id).eq('pool_id', pool_id);
+    const settings = await client
+        .from('round_settings')
+        .select('*')
+        .eq('round_id', round_id)
+        .eq('league_id', league_id);
     const pool = await client.from('pools').select('*').eq('id', pool_id);
     if (pool.data[0].current !== team_id) {
         return {
@@ -305,12 +335,12 @@ export async function draftPlayer(league_id: number, round_id: number, pool_id: 
         };
     }
 
-    if(!settings.data[0]) {
+    if (!settings.data[0]) {
         return {
             error: {
                 message: 'Round not configured by commish yet.'
             }
-        }
+        };
     }
 
     if (!isPickValid(player.data[0], settings.data[0], team.data)) {
@@ -320,26 +350,35 @@ export async function draftPlayer(league_id: number, round_id: number, pool_id: 
             }
         };
     }
-
+    const curr_pick_number = pool.data[0].pick_number;
     const response = await client.from('team_players').insert({
         pool_id,
         team_id,
-        player_id
+        player_id,
+        pick_number: curr_pick_number
     });
 
     if (!response.error) {
-        const next: number[]= pool.data[0].draft_order;
+        const next: number[] = pool.data[0].draft_order;
         const curr_index = next.findIndex((x) => x === team_id);
         let next_index = curr_index === next.length - 1 ? 0 : curr_index + 1;
         if (next_index === 0) {
-            next.reverse()
+            next.reverse();
         }
-        const next_team_count = (await client.from('team_players').select('*').eq('pool_id', pool_id).eq('team_id', next[next_index])).data.length ?? 0;
+        const next_team_count =
+            (await client.from('team_players').select('*').eq('pool_id', pool_id).eq('team_id', next[next_index])).data
+                .length ?? 0;
         if (settings.data[0].max_team_size === next_team_count) {
-            await client.from('pools').update({ current: null, status: 'complete' }).eq('id', pool_id);
-            return response
+            await client
+                .from('pools')
+                .update({ pick_number: curr_pick_number + 1, current: null, status: 'complete' })
+                .eq('id', pool_id);
+            return response;
         }
-        const res = await client.from('pools').update({ draft_order: next, current: next[next_index] }).eq('id', pool_id);
+        const res = await client
+            .from('pools')
+            .update({ pick_number: curr_pick_number + 1, draft_order: next, current: next[next_index] })
+            .eq('id', pool_id);
         if (res.error) {
             return res;
         }
@@ -402,7 +441,7 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
     }
 
     if (sf_spots > 0) {
-        return true
+        return true;
     }
 
     if (qb_spots < 0) {
@@ -419,74 +458,86 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
 
 export async function loadPoints({ league_id, round_id }: { round_id?: number; league_id: number }) {
     const client = await createClient();
-    const request =  client.from('round_settings').select('*').eq('league_id', league_id);
-        request.not('round_id', 'eq', -1)
-    
-    const round_settings = await request
+    const request = client.from('round_settings').select('*').eq('league_id', league_id);
+    request.not('round_id', 'eq', -1);
+    const round_settings = await request;
+    const games = await client.from('games').select('*');
+    const pools = await client.from('pools').select('*').eq('league_id', league_id);
+    const pool_ids_by_round = pools.data.reduce((acc, curr) => {
+        acc[curr.round_id] = acc[curr.round_id] ? [...acc[curr.round_id], curr.id] : [curr.id];
+        return acc;
+    }, {})
     const { data: teamsWithPlayers } = await client
         .from('team')
         .select('*, players:team_players(*, player(*))')
-        .eq(
-            'league_id',
-            league_id,
-        );
-    
-    
+        .eq('league_id', league_id);
+
     const player_ids = teamsWithPlayers.map((x) => x.players.map((x) => x.player.id)).flat();
     const { data: stats } = await client.from('stats').select('*').in('player_id', player_ids);
-    const teamsWithPlayersWithStats = teamsWithPlayers.map((team) => {
-        return {
-            ...team,
-            team_players: team.players.map((player) => {
-                const player_stats = stats.filter((x) => x.player_id === player.player.id)[0]
+    const games_by_id = games.data.reduce((acc, curr) => {
+        acc[curr.id] = curr;
+        return acc;
+    }, {});
+    const teamsWithPlayersWithStats = teamsWithPlayers
+        .map((team) => {
+            return {
+                ...team,
+                team_players: team.players.map((player) => {
+                    const player_stats = stats.filter((x) => x.player_id === player.player.id).filter(x => {
+                        const game = games_by_id[x.game_id];
+                        const round = game.nfl_round_id
+                        const pool_ids = pool_ids_by_round[round]
+                        return pool_ids?.includes(player.pool_id)
+                    })[0]
 
-                return {
-                    ...player,
-                    stats: player_stats,
-                    score: scorePlayer(player, player_stats, round_settings.data[0]) ?? 0
-                };
-            })
-        };
-    }).map(team => {
-        const poolScores = {}
-        let seasonScore = 0
-        for (const player of team.team_players) {
-            seasonScore += player.score
-            if (!poolScores[player.pool_id]) {
-                poolScores[player.pool_id] = player.score;
-            } else {
-                poolScores[player.pool_id] += player.score;
+                    return {
+                        ...player,
+                        stats: player_stats,
+                        score: scorePlayer(player, player_stats, round_settings.data[0]) ?? 0
+                    };
+                })
+            };
+        })
+        .map((team) => {
+            const poolScores = {};
+            let seasonScore = 0;
+            for (const player of team.team_players) {
+                seasonScore += player.score;
+                if (!poolScores[player.pool_id]) {
+                    poolScores[player.pool_id] = player.score;
+                } else {
+                    poolScores[player.pool_id] += player.score;
+                }
             }
-        }
-        return {
-            ...team,
-            poolScores,
-            seasonScore: parseFloat(seasonScore.toFixed(2)),
-        }
-    })
+            return {
+                ...team,
+                poolScores,
+                seasonScore: parseFloat(seasonScore.toFixed(2))
+            };
+        });
 
-    return teamsWithPlayersWithStats
+    return teamsWithPlayersWithStats;
 }
 
 function scorePlayer(player: TeamPlayer, stats: Stats, round_settings: RoundSettings) {
     let score = 0;
     if (player.player.is_qb || player.player.is_wr) {
-        score += round_settings.wr_ppr * (stats?.rec ?? 0)
+        score += round_settings.wr_ppr * (stats?.rec ?? 0);
     } else if (player.player.is_te) {
-        score += round_settings.te_ppr * (stats?.rec ?? 0)
+        score += round_settings.te_ppr * (stats?.rec ?? 0);
     } else if (player.player.is_rb) {
-        score += round_settings.rb_ppr * (stats?.rec ?? 0)
+        score += round_settings.rb_ppr * (stats?.rec ?? 0);
     }
 
-    score += round_settings.rec_yd * (stats?.rec_yds ?? 0)
-    score += round_settings.rush_yd * (stats?.rush_yds ?? 0)
-    score += round_settings.rush_td * (stats?.rush_td ?? 0)
-    score += round_settings.pass_td * (stats?.pass_td ?? 0)
-    score += round_settings.rec_td * (stats?.rec_td ?? 0)
-    score += round_settings.pass_yd * (stats?.pass_yds ?? 0)
-    score += round_settings.fum * (stats?.fum ?? 0)
-    score += round_settings.int * (stats?.int ?? 0)
-    score += 2 * (stats?.['2pt'] ?? 0)
-    
+    score += round_settings.rec_yd * (stats?.rec_yds ?? 0);
+    score += round_settings.rush_yd * (stats?.rush_yds ?? 0);
+    score += round_settings.rush_td * (stats?.rush_td ?? 0);
+    score += round_settings.pass_td * (stats?.pass_td ?? 0);
+    score += round_settings.rec_td * (stats?.rec_td ?? 0);
+    score += round_settings.pass_yd * (stats?.pass_yds ?? 0);
+    score += round_settings.fum * (stats?.fum ?? 0);
+    score += round_settings.int * (stats?.int ?? 0);
+    score += 2 * (stats?.['2pt'] ?? 0);
+
     return parseFloat(score.toFixed(2));
 }
