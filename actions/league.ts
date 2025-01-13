@@ -486,6 +486,7 @@ function scorePlayer(player: TeamPlayer, stats: Stats, round_settings: RoundSett
     score += round_settings.pass_yd * (stats?.pass_yds ?? 0)
     score += round_settings.fum * (stats?.fum ?? 0)
     score += round_settings.int * (stats?.int ?? 0)
+    score += 2 * (stats?.['2pt'] ?? 0)
     
     return parseFloat(score.toFixed(2));
 }
