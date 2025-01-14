@@ -7,6 +7,7 @@ import Teams from '@/components/teams';
 import { toaster } from '@/components/ui/toaster';
 import Link from 'next/link';
 import { useDraft } from '@/app/leagues/[league_id]/draft/hooks';
+import { createClient } from '@/utils/supabase/client';
 
 export function Draft({ leagueId, roundId }) {
     const app = useAppSelector((state) => state.app);
@@ -27,6 +28,23 @@ export function Draft({ leagueId, roundId }) {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    useEffect(() => {
+        const handleInserts = (payload) => {
+            refreshDraft();
+        };
+
+        const client = createClient();
+        const channel = client.channel('supabase_realtime');
+        // Listen to inserts
+        channel
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pools' }, handleInserts)
+            .subscribe();
+
+        return () => {
+            client.removeChannel(channel);
+        };
+    }, [refreshDraft]);
 
     if (!league) {
         return (

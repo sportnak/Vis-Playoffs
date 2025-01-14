@@ -9,7 +9,7 @@ import { Tooltip } from './ui/tooltip';
 import { useParams } from 'next/navigation';
 import { setTab } from '@/store/appSlice';
 import { useCallback } from 'react';
-import { MdAdminPanelSettings, MdOutlinePeopleAlt, MdOutlineScoreboard } from 'react-icons/md';
+import { MdAdminPanelSettings, MdAssignment, MdOutlinePeopleAlt, MdOutlineScoreboard } from 'react-icons/md';
 
 export default function Header() {
     const { league_id } = useParams();
@@ -73,8 +73,8 @@ export default function Header() {
                         variant={tab === 'draft' ? 'solid' : 'ghost'}
                         onClick={() => changeTab('draft')}
                     >
-                        <Icon fontSize="20px" color={tab === 'draft' ? 'white' : 'inherit'}>
-                            <GrScorecard />
+                        <Icon fontSize="20px">
+                            <MdAssignment />
                         </Icon>
                     </Button>
 
