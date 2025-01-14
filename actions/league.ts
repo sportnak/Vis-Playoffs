@@ -146,20 +146,21 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
     const loops = members.length / pools.length;
     const cloned_members = JSON.parse(JSON.stringify(members));
     const pool_map: { [pool_id: number]: number[] } = {};
-    let existing = await client.from('team').select('*').eq('league_id', pools[0].league_id);
-    if (!existing.data.length) {
-        for (const member of members) {
-            const r = await client
-                .from('team')
-                .insert({
-                    member_id: member.id,
-                    league_id: pools[0].league_id,
-                    name: uniqueNamesGenerator(nameConfig)
-                })
-                .select();
+    for (const member of members) {
+        const existing_team = await client.from('team').select('*').eq('league_id', pools[0].league_id).eq('member_id', member.id);
+        if (existing_team.data.length) {
+            continue;
         }
-        existing = await client.from('team').select('*').eq('league_id', pools[0].league_id);
+        await client
+            .from('team')
+            .insert({
+                member_id: member.id,
+                league_id: pools[0].league_id,
+                name: uniqueNamesGenerator(nameConfig)
+            })
+            .select();
     }
+    const existing = await client.from('team').select('*').eq('league_id', pools[0].league_id);
 
     const teams: Team[] = existing.data;
     for (let i = 0; i < loops; i++) {
@@ -174,7 +175,11 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
             pool_map[pools[j].id] = [...(pool_map[pools[j].id] || []), team.id];
         }
     }
+
     for (const pool of pools) {
+        if (!pool_map[pool.id]) {
+            continue;
+        }
         await client
             .from('pools')
             .update({
@@ -283,7 +288,8 @@ export async function loadPool(round_id: number, league_id: number) {
 
 export async function resetPools(league_id: number) {
     const client = await createClient();
-    const response = await client.from('pools').delete().eq('league_id', league_id);
+    const open_pools = await client.from('pools').select('*').eq('league_id', league_id).not('status', 'eq', 'complete')
+    const response = await client.from('pools').delete().in('id', open_pools.data.map((x) => x.id));
     return response;
 }
 

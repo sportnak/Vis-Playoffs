@@ -56,20 +56,35 @@ export default function Header() {
                         </Link>
                     </Button>
 
-                    <Button variant="ghost" onClick={() => changeTab('scoreboard')}>
+                    <Button
+                        borderRadius="50%"
+                        w="40px"
+                        variant={tab === 'scoreboard' ? 'solid' : 'ghost'}
+                        onClick={() => changeTab('scoreboard')}
+                    >
                         <Icon fontSize="20px">
                             <MdOutlineScoreboard />
                         </Icon>
                     </Button>
 
-                    <Button variant="ghost" onClick={() => changeTab('draft')}>
-                        <Icon fontSize="20px">
+                    <Button
+                        borderRadius="50%"
+                        w="40px"
+                        variant={tab === 'draft' ? 'solid' : 'ghost'}
+                        onClick={() => changeTab('draft')}
+                    >
+                        <Icon fontSize="20px" color={tab === 'draft' ? 'white' : 'inherit'}>
                             <GrScorecard />
                         </Icon>
                     </Button>
 
                     {league?.admin_id === user?.id && (
-                        <Button variant="ghost" onClick={() => changeTab('manage')}>
+                        <Button
+                            borderRadius="50%"
+                            w="40px"
+                            variant={tab === 'manage' ? 'solid' : 'ghost'}
+                            onClick={() => changeTab('manage')}
+                        >
                             <Icon fontSize="20px">
                                 <MdAdminPanelSettings />
                             </Icon>
@@ -77,7 +92,12 @@ export default function Header() {
                     )}
 
                     {league?.admin_id === user?.id && (
-                        <Button variant="ghost" onClick={() => changeTab('teams')}>
+                        <Button
+                            borderRadius="50%"
+                            w="40px"
+                            variant={tab === 'teams' ? 'solid' : 'ghost'}
+                            onClick={() => changeTab('teams')}
+                        >
                             <Icon fontSize="20px">
                                 <MdOutlinePeopleAlt />
                             </Icon>

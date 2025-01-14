@@ -51,7 +51,7 @@ export function LeagueHeader() {
     const { tab, user, teamName, team } = useAppSelector((state) => state.app);
     const dispatch = useAppDispatch();
     const { league } = useLeague(league_id as string);
-    const [selectedRoundId, setValue] = useState('2');
+    const [selectedRoundId, setValue] = useState('3');
 
     const changeTab = useCallback((tab: string) => {
         dispatch(setTab(tab));
