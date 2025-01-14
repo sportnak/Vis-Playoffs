@@ -223,11 +223,6 @@ export async function loadNFLPlayers(
         .from('nfl_team')
         .select('*')
         .in('id', games.data.map((x) => [x.nfl_team_1, x.nfl_team_2]).flat());
-    const league_pools = await client
-        .from('pools')
-        .select('*')
-        .eq('league_id', league_id)
-        .or(`status.eq.complete, id.eq.${pool_id}`);
     const request = client
         .from('player')
         .select('*, nfl_team(*), team_players(*)')
@@ -235,9 +230,9 @@ export async function loadNFLPlayers(
             'nfl_team_id',
             teams.data.map((x) => x.id)
         )
-        .in(
+        .eq(
             'team_players.pool_id',
-            league_pools.data.map((x) => x.id)
+            pool_id
         );
     if (query.name?.length) {
         request.ilike('name', `%${query.name}%`);
@@ -247,8 +242,8 @@ export async function loadNFLPlayers(
         request.in('nfl_team_id', query.team_ids);
     }
 
-    if (!query.drafted && !query.name?.length) {
-        request.is('team_players', null);
+    if (!query.name?.length && query.drafted) {
+        request.not('team_players', 'is', null)
     }
 
     if (query.pos === 'QB') {
@@ -275,7 +270,7 @@ export async function loadNFLPlayers(
         request.or('is_te.is.true, is_rb.is.true, is_wr.is.true, is_qb.is.true');
     }
 
-    request.order('off_grade', { ascending: false }).limit(25);
+    request.order('pick_number', { referencedTable: 'team_players', ascending: true }).limit(50);
     const response = await request;
     return response;
 }

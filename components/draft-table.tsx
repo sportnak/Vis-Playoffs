@@ -37,6 +37,7 @@ import { SelectContent, SelectItem, SelectLabel, SelectRoot, SelectTrigger, Sele
 import { LuPencil } from 'react-icons/lu';
 import { InputGroup } from './ui/input-group';
 import { MdOutlineSearch } from 'react-icons/md';
+import { Tooltip } from './ui/tooltip';
 
 const positions = createListCollection({
     items: [
@@ -53,7 +54,7 @@ const positions = createListCollection({
 export default function Draft({ pool, team, teams, member, draftPlayer, refreshDraft }) {
     const { round_id } = useAppSelector((state) => state.app);
     const [query, setQuery] = useState({
-        drafted: false,
+        drafted: true,
         pos: '',
         round_id: round_id.toString(),
         name: '',
@@ -216,30 +217,21 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                     <Table.Root background={'none'}>
                         <Table.Header>
                             <Table.Row background={'none'}>
+                                <Table.ColumnHeader>Pick No.</Table.ColumnHeader>
                                 <Table.ColumnHeader>Name</Table.ColumnHeader>
                                 <Table.ColumnHeader>Team</Table.ColumnHeader>
                                 <Table.ColumnHeader>Pos</Table.ColumnHeader>
-                                <Table.ColumnHeader>ADP</Table.ColumnHeader>
                                 <Table.ColumnHeader></Table.ColumnHeader>
                             </Table.Row>
                         </Table.Header>
                         <Table.Body>
                             {nflPlayers?.map((player) => {
-                                let adp: number | string =
-                                    player.team_players.reduce((acc, x) => acc + x.pick_number, 0) /
-                                    player.team_players.length;
-                                if (!isNaN(adp)) {
-                                    adp = parseFloat(adp.toFixed(2));
-                                } else {
-                                    adp = '';
-                                }
-
                                 return (
                                     <Table.Row background={'none'} key={player.id}>
+                                        <Table.Cell>{player.team_players?.[0]?.pick_number}</Table.Cell>
                                         <Table.Cell>{player.name}</Table.Cell>
                                         <Table.Cell>{player.nfl_team.name}</Table.Cell>
                                         <Table.Cell>{mapPos(player)}</Table.Cell>
-                                        <Table.Cell>{adp}</Table.Cell>
                                         <Table.Cell>
                                             {player.team_players.filter((x) => x.pool_id === pool?.id)?.length !== 0 ? (
                                                 'Drafted'
