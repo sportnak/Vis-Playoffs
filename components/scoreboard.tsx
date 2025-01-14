@@ -1,7 +1,7 @@
 import { usePoints } from '@/app/leagues/[league_id]/hooks';
 import { Team } from '@/app/types';
 import { mapPos } from '@/app/util';
-import { Box, Table, Button, Text, Heading, HStack, VStack } from '@chakra-ui/react';
+import { Box, Table, Button, Text, Heading, HStack, VStack, Center } from '@chakra-ui/react';
 import { useParams } from 'next/navigation';
 import { TeamCard } from './teams';
 import { useAppSelector, useUser } from '@/app/hooks';
@@ -45,6 +45,9 @@ export function Scoreboard({ league_id }) {
     const sortedTeams = useMemo(() => {
         return teamSeason.sort((a, b) => b.seasonScore - a.seasonScore);
     }, [teamSeason]);
+    const isDrafting = useMemo(() => {
+        return currentRound?.pools?.find((pool) => pool.status !== 'complete') != null;
+    }, [currentRound]);
 
     return (
         <Box>
@@ -55,7 +58,11 @@ export function Scoreboard({ league_id }) {
                 </Button>
             </VStack>
 
-            {showSummary ? (
+            {isDrafting ? (
+                <Center w="100%" ml="12px">
+                    <Heading fontWeight={300}>Draft is ongoing</Heading>
+                </Center>
+            ) : showSummary ? (
                 <DraftSummary teams={teamSeason} />
             ) : (
                 <HStack justifyContent={'center'} flexWrap={'wrap'} gap={'20px'}>
