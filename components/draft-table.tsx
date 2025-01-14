@@ -218,6 +218,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                         <Table.Header>
                             <Table.Row background={'none'}>
                                 <Table.ColumnHeader>Pick No.</Table.ColumnHeader>
+                                <Table.ColumnHeader>Team</Table.ColumnHeader>
                                 <Table.ColumnHeader>Name</Table.ColumnHeader>
                                 <Table.ColumnHeader>Team</Table.ColumnHeader>
                                 <Table.ColumnHeader>Pos</Table.ColumnHeader>
@@ -229,6 +230,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                 return (
                                     <Table.Row background={'none'} key={player.id}>
                                         <Table.Cell>{player.team_players?.[0]?.pick_number}</Table.Cell>
+                                        <Table.Cell>{player.team_players?.[0]?.team.name}</Table.Cell>
                                         <Table.Cell>{player.name}</Table.Cell>
                                         <Table.Cell>{player.nfl_team.name}</Table.Cell>
                                         <Table.Cell>{mapPos(player)}</Table.Cell>

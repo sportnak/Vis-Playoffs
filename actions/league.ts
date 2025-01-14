@@ -225,7 +225,7 @@ export async function loadNFLPlayers(
         .in('id', games.data.map((x) => [x.nfl_team_1, x.nfl_team_2]).flat());
     const request = client
         .from('player')
-        .select('*, nfl_team(*), team_players(*)')
+        .select('*, nfl_team(*), team_players(*, team(name))')
         .in(
             'nfl_team_id',
             teams.data.map((x) => x.id)
