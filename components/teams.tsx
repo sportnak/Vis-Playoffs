@@ -44,7 +44,7 @@ export default function Teams({
             };
         });
     }, [teams]);
-    const [value, setValue] = useState<any>();
+    const [value, setValue] = useState<any>({});
     useEffect(() => {
         const team = teams?.find((team) => team.member_id === memberId);
         if (!team) {

@@ -45,7 +45,7 @@ export function Select({
                     onClick={() => setShowOptions(true)}
                     style={{ cursor: 'pointer', width: '100%', background: 'rgba(169, 169, 169, 0.1)' }} // Opaque gray
                     variant="subtle"
-                    value={value?.label}
+                    value={value?.label ?? ''}
                     readOnly
                 />
             </InputGroup>

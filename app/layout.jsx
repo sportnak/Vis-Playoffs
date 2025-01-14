@@ -17,14 +17,14 @@ export default function RootLayout({ children }) {
         <html lang="en" data-theme="lofi">
             <head>
                 <link rel="icon" href="/favicon.svg" sizes="any" />
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+                <link
+                    href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap"
+                    rel="stylesheet"
+                />
             </head>
 
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-            <link
-                href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap"
-                rel="stylesheet"
-            />
             <body
                 className="antialiased text-white"
                 style={{
