@@ -38,7 +38,8 @@ export default function RootLayout({ children }) {
                         flexDirection: 'column',
                         minHeight: '100vh',
                         paddingLeft: '1.5rem', // equivalent to px-6
-                        paddingRight: '1.5rem' // equivalent to px-6
+                        paddingRight: '1.5rem', // equivalent to px-6
+                        paddingBottom: '100px'
                         // backgroundImage:
                         //     'linear-gradient(to bottom, rgb(10 10 10 / 0%), rgb(10 10 10 / 100%)), url(/images/noise.png)'
                     }}
@@ -52,6 +53,7 @@ export default function RootLayout({ children }) {
                                             paddingLeft: '40px',
                                             paddingRight: '40px',
                                             borderRadius: '20px',
+                                            paddingBottom: '100px',
                                             position: 'fixed',
                                             zIndex: 10,
                                             height: '100vh',

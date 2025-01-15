@@ -136,6 +136,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
             <Flex direction={'column'}>
                 <Flex
                     flexDir={'row'}
+                    base={{ flexDir: 'column', alignItems: 'flex-start' }}
                     sm={{ flexDir: 'column', alignItems: 'flex-start' }}
                     alignItems={'center'}
                     mb={5}
@@ -214,63 +215,69 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                         </Heading>
                     </Center>
                 ) : (
-                    <Table.Root background={'none'}>
-                        <Table.Header>
-                            <Table.Row background={'none'}>
-                                <Table.ColumnHeader>Pick No.</Table.ColumnHeader>
-                                <Table.ColumnHeader>Team</Table.ColumnHeader>
-                                <Table.ColumnHeader>Name</Table.ColumnHeader>
-                                <Table.ColumnHeader>Team</Table.ColumnHeader>
-                                <Table.ColumnHeader>Pos</Table.ColumnHeader>
-                                <Table.ColumnHeader></Table.ColumnHeader>
-                            </Table.Row>
-                        </Table.Header>
-                        <Table.Body>
-                            {nflPlayers?.map((player) => {
-                                return (
-                                    <Table.Row background={'none'} key={player.id}>
-                                        <Table.Cell>{player.team_players?.[0]?.pick_number}</Table.Cell>
-                                        <Table.Cell>{player.team_players?.[0]?.team.name}</Table.Cell>
-                                        <Table.Cell>{player.name}</Table.Cell>
-                                        <Table.Cell>{player.nfl_team.name}</Table.Cell>
-                                        <Table.Cell>{mapPos(player)}</Table.Cell>
-                                        <Table.Cell>
-                                            {player.team_players.filter((x) => x.pool_id === pool?.id)?.length !== 0 ? (
-                                                'Drafted'
-                                            ) : (
-                                                <Button
-                                                    disabled={false}
-                                                    as="div"
-                                                    variant="ghost"
-                                                    style={{
-                                                        background: '#3D4946',
-                                                        padding: '10px',
-                                                        borderRadius: '8px',
-                                                        height: '30px',
-                                                        width: '75px',
-                                                        color: 'white'
-                                                    }}
-                                                    _hover={{
-                                                        background: '#2482A6'
-                                                    }}
-                                                    onClick={() => {
-                                                        if (false) {
-                                                            return;
-                                                        }
+                    <Box width="100%" maxH="100vh" overflow={'scroll'}>
+                        <Table.Root
+                            background={'none'}
+                            style={{ position: 'sticky', top: 0, background: 'white', zIndex: 2 }}
+                        >
+                            <Table.Header>
+                                <Table.Row background={'none'}>
+                                    <Table.ColumnHeader>Pick No.</Table.ColumnHeader>
+                                    <Table.ColumnHeader>Team</Table.ColumnHeader>
+                                    <Table.ColumnHeader>Name</Table.ColumnHeader>
+                                    <Table.ColumnHeader>Team</Table.ColumnHeader>
+                                    <Table.ColumnHeader>Pos</Table.ColumnHeader>
+                                    <Table.ColumnHeader></Table.ColumnHeader>
+                                </Table.Row>
+                            </Table.Header>
+                            <Table.Body>
+                                {nflPlayers?.map((player) => {
+                                    return (
+                                        <Table.Row background={'none'} key={player.id}>
+                                            <Table.Cell>{player.team_players?.[0]?.pick_number}</Table.Cell>
+                                            <Table.Cell>{player.team_players?.[0]?.team.name}</Table.Cell>
+                                            <Table.Cell>{player.name}</Table.Cell>
+                                            <Table.Cell>{player.nfl_team.name}</Table.Cell>
+                                            <Table.Cell>{mapPos(player)}</Table.Cell>
+                                            <Table.Cell>
+                                                {player.team_players.filter((x) => x.pool_id === pool?.id)?.length !==
+                                                0 ? (
+                                                    'Drafted'
+                                                ) : (
+                                                    <Button
+                                                        disabled={false}
+                                                        as="div"
+                                                        variant="ghost"
+                                                        style={{
+                                                            background: '#3D4946',
+                                                            padding: '10px',
+                                                            borderRadius: '8px',
+                                                            height: '30px',
+                                                            width: '75px',
+                                                            color: 'white'
+                                                        }}
+                                                        _hover={{
+                                                            background: '#2482A6'
+                                                        }}
+                                                        onClick={() => {
+                                                            if (false) {
+                                                                return;
+                                                            }
 
-                                                        setPlayerConfirmation(player);
-                                                        dialog.setOpen(true);
-                                                    }}
-                                                >
-                                                    Draft
-                                                </Button>
-                                            )}
-                                        </Table.Cell>
-                                    </Table.Row>
-                                );
-                            })}
-                        </Table.Body>
-                    </Table.Root>
+                                                            setPlayerConfirmation(player);
+                                                            dialog.setOpen(true);
+                                                        }}
+                                                    >
+                                                        Draft
+                                                    </Button>
+                                                )}
+                                            </Table.Cell>
+                                        </Table.Row>
+                                    );
+                                })}
+                            </Table.Body>
+                        </Table.Root>
+                    </Box>
                 )}
             </Flex>
         </Box>

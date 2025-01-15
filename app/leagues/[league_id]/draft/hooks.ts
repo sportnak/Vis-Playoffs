@@ -34,7 +34,7 @@ export function useNFLTeams() {
 }
 
 export function useNFLPlayers(
-    query: { name?: string; pos: string; team_ids?: number[]; round_id: string },
+    query: { drafted?: boolean; name?: string; pos: string; team_ids?: number[]; round_id: string },
     pool_id: number,
     league_id: number
 ) {
@@ -45,11 +45,11 @@ export function useNFLPlayers(
             return;
         }
         const response = await loadNFLPlayers(query, pool_id, league_id);
-        setNFLPlayers(
-            response.data?.sort(
-                (a, b) => (a.team_players?.[0]?.pick_number ?? 0) - (b.team_players?.[0]?.pick_number ?? 0)
-            )
-        );
+        const data = response.data;
+        if (query.drafted) {
+            data?.sort((a, b) => (b.team_players?.[0]?.pick_number ?? 0) - (a.team_players?.[0]?.pick_number ?? 0));
+        }
+        setNFLPlayers(data);
     }, [query, pool_id]);
 
     const hasLoaded = useRef(false);

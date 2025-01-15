@@ -270,7 +270,7 @@ export async function loadNFLPlayers(
         request.or('is_te.is.true, is_rb.is.true, is_wr.is.true, is_qb.is.true');
     }
 
-    request.order('pick_number', { referencedTable: 'team_players', ascending: true }).limit(50);
+    request.order('pick_number', { referencedTable: 'team_players', ascending: false }).limit(50);
     const response = await request;
     return response;
 }
