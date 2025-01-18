@@ -103,7 +103,7 @@ export function Draft({ leagueId, roundId }) {
                         memberId={member?.id}
                     />
                 </Box>
-                <Box flex="5" p="20px" bg="rgba(255, 255, 255, 0.5)" boxShadow="md" borderRadius="6px" h="100%">
+                <Box flex="5" p="20px" bg="rgba(255, 255, 255, 0.5)" boxShadow="md" borderRadius="12px" h="100%">
                     <DraftTable
                         pool={pool}
                         teams={teams}

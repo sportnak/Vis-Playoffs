@@ -13,6 +13,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRef } from 'react';
 import { DialogContent, DialogRoot, DialogTrigger } from './ui/dialog';
 import { useState } from 'react';
+import { Select } from './select';
 
 export function Scoreboard({ league_id }) {
     const app = useAppSelector((state) => state.app);
@@ -49,6 +50,8 @@ export function Scoreboard({ league_id }) {
         return currentRound?.pools?.find((pool) => pool.status !== 'complete') != null;
     }, [currentRound]);
 
+    const [selectedPool, setSelectedPool] = useState({ label: 'All', value: null });
+
     return (
         <Box>
             <VStack ml="12px" alignItems={'flex-start'} mb="30px">
@@ -63,7 +66,27 @@ export function Scoreboard({ league_id }) {
                     <Heading fontWeight={300}>Draft is ongoing</Heading>
                 </Center>
             ) : showSummary ? (
-                <DraftSummary teams={teamSeason} />
+                <Box>
+                    <Select
+                        value={selectedPool}
+                        items={
+                            [
+                                { label: 'All', value: null },
+                                ...currentRound?.pools.map((pool) => ({ label: pool.name, value: pool.id }))
+                            ] || []
+                        }
+                        onChange={(selected) => {
+                            setSelectedPool(selected);
+                            console.log('Selected pool:', selected);
+                        }}
+                    />
+                    <DraftSummary
+                        teams={teamSeason}
+                        pools={pools}
+                        pool_id={selectedPool.value}
+                        round_id={currentRound?.id}
+                    />
+                </Box>
             ) : (
                 <HStack justifyContent={'center'} flexWrap={'wrap'} gap={'20px'}>
                     {sortedTeams.map((team) => {
@@ -193,10 +216,42 @@ function mapStatNameShort(stat) {
     }
 }
 
-function DraftSummary({ teams }) {
+function DraftSummary({ teams, pools, round_id, pool_id }) {
+    const pools_by_round = useMemo(() => {
+        return pools.reduce(
+            (acc, pool) => ({
+                ...acc,
+                [pool.round_id]: [...(acc[pool.round_id] || []), pool]
+            }),
+            {}
+        );
+    }, [pools]);
+
+    const teams_by_id = useMemo(() => {
+        return teams?.reduce((acc, team) => {
+            acc[team.id] = team.name;
+            return acc;
+        }, {});
+    }, [teams]);
     const summary = useMemo(() => {
+        let pool_ids = [];
+        if (pool_id) {
+            pool_ids = [pool_id];
+        } else if (round_id) {
+            pool_ids = pools_by_round[round_id]?.map((x) => x.id);
+        } else {
+            pool_ids = pools.map((x) => x.id);
+        }
+        console.log(
+            round_id,
+            pool_ids,
+            pools.map((x) => x.id)
+        );
         const grouped = teams.reduce((acc, team) => {
             for (const player of team.team_players) {
+                if (!pool_ids.includes(player.pool_id)) {
+                    continue;
+                }
                 if (!acc[player.player_id]) {
                     acc[player.player_id] = [player];
                 } else {
@@ -211,8 +266,10 @@ function DraftSummary({ teams }) {
             const players = grouped[playerId];
             const pos = players.map((x) => x.pick_number);
             const adp = players.reduce((acc, player) => acc + player.pick_number, 0) / players.length;
+
             summaries.push({
                 adp,
+                team: teams_by_id[players[0].team_id],
                 points: players[0].score,
                 stats: players[0].stats,
                 min: Math.min(...pos),
@@ -222,7 +279,7 @@ function DraftSummary({ teams }) {
         }
         summaries.sort((a, b) => a.adp - b.adp);
         return summaries;
-    }, [teams]);
+    }, [teams, pools, round_id, pool_id]);
 
     return (
         <Box width="100%" maxH="100vh" overflow={'scroll'}>
@@ -234,9 +291,12 @@ function DraftSummary({ teams }) {
                         >
                             Name
                         </Table.ColumnHeader>
-                        <Table.ColumnHeader style={{ width: '40px' }}>ADP</Table.ColumnHeader>
-                        <Table.ColumnHeader style={{ width: '40px' }}>Min</Table.ColumnHeader>
-                        <Table.ColumnHeader style={{ width: '40px' }}>Max</Table.ColumnHeader>
+                        <Table.ColumnHeader style={{ width: '40px' }}>
+                            {pool_id == null ? 'ADP' : 'Pos'}
+                        </Table.ColumnHeader>
+                        {pool_id != null && <Table.ColumnHeader style={{ width: '40px' }}>Team</Table.ColumnHeader>}
+                        {pool_id == null && <Table.ColumnHeader style={{ width: '40px' }}>Min</Table.ColumnHeader>}
+                        {pool_id == null && <Table.ColumnHeader style={{ width: '40px' }}>Max</Table.ColumnHeader>}
                         <Table.ColumnHeader style={{ width: '40px' }}>Points</Table.ColumnHeader>
                         {statsKeys.map((key) => (
                             <Table.ColumnHeader key={key}>{mapStatNameShort(key)}</Table.ColumnHeader>
@@ -258,9 +318,12 @@ function DraftSummary({ teams }) {
                             >
                                 {item.name}
                             </Table.Cell>
-                            <Table.Cell style={{ width: '40px' }}>{item.adp.toFixed(2)}</Table.Cell>
-                            <Table.Cell style={{ width: '40px' }}>{item.min}</Table.Cell>
-                            <Table.Cell style={{ width: '40px' }}>{item.max}</Table.Cell>
+                            <Table.Cell style={{ width: '40px' }}>
+                                {pool_id == null ? item.adp.toFixed(2) : parseInt(item.adp)}
+                            </Table.Cell>
+                            {pool_id != null && <Table.Cell style={{ width: '40px' }}>{item.team}</Table.Cell>}
+                            {pool_id == null && <Table.Cell style={{ width: '40px' }}>{item.min}</Table.Cell>}
+                            {pool_id == null && <Table.Cell style={{ width: '40px' }}>{item.max}</Table.Cell>}
                             <Table.Cell style={{ width: '40px' }}>{item.points}</Table.Cell>
                             {statsKeys.map((key) => (
                                 <Table.Cell key={key}>{item.stats?.[key] ?? 0}</Table.Cell>

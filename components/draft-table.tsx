@@ -217,6 +217,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                 ) : (
                     <Box width="100%" maxH="100vh" overflow={'scroll'}>
                         <Table.Root
+                            borderRadius="12px"
                             background={'none'}
                             style={{ position: 'sticky', top: 0, background: 'white', zIndex: 2 }}
                         >
