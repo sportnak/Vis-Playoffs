@@ -211,7 +211,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                 ) : !nflPlayers.length ? (
                     <Center>
                         <Heading size={'md'} as="h5" fontWeight={300}>
-                            No players. Games have not been set
+                            No players drafted yet.
                         </Heading>
                     </Center>
                 ) : (
