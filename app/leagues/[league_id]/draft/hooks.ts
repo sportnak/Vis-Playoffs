@@ -87,12 +87,12 @@ export function useDraft(league_id: number, round_id: number, member: Member) {
     );
 
     const load = useCallback(async () => {
-        const team = await loadTeam(league_id, member.id);
+        const team = await loadTeam(league_id, member?.id);
         dispatch(setTeam(team.data[0]));
         const pool_response = await loadPool(round_id, league_id);
         const pool = pool_response.data.find((pool) => pool.draft_order.includes(team.data[0].id));
         dispatch(setPool(pool));
-    }, [league_id, round_id, dispatch]);
+    }, [member, league_id, round_id, dispatch]);
 
     useEffect(() => {
         load();
@@ -177,7 +177,6 @@ export function useMember(league_id: number, user: User) {
         if (!user) {
             return;
         }
-        console.trace('foo"0');
         const response = await loadMember(league_id, user);
         setMembers(response.data);
     }, [league_id, user]);
