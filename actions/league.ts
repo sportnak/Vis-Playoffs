@@ -37,6 +37,162 @@ export async function loadLeague(league_id: number, user: User) {
     return response;
 }
 
+export async function createLeague({
+    name,
+    description,
+    member_emails
+}: {
+    name: string;
+    description?: string;
+    member_emails?: string[]
+}) {
+    const client = await createClient();
+
+    // Get current authenticated user
+    const { data: { user }, error: userError } = await client.auth.getUser();
+
+    if (userError || !user) {
+        return {
+            error: {
+                message: 'User not authenticated'
+            }
+        };
+    }
+
+    // Validate league name
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+        return {
+            error: {
+                message: 'League name is required'
+            }
+        };
+    }
+
+    // Create the league
+    const { data: league, error: leagueError } = await client
+        .from('league')
+        .insert({
+            name: trimmedName,
+            description: description?.trim() || null,
+            admin_id: user.id
+        })
+        .select()
+        .single();
+
+    if (leagueError) {
+        return {
+            error: {
+                message: leagueError.message || 'Failed to create league'
+            }
+        };
+    }
+
+    // Add member invitations if provided
+    if (member_emails && member_emails.length > 0) {
+        // Filter out empty emails and duplicates
+        const validEmails = [...new Set(
+            member_emails
+                .map(email => email.trim())
+                .filter(email => email.length > 0)
+        )];
+
+        if (validEmails.length > 0) {
+            const memberInserts = validEmails.map(email => ({
+                email,
+                league_id: league.id,
+                status: 'pending' as const
+            }));
+
+            const { error: membersError } = await client
+                .from('league_members')
+                .insert(memberInserts);
+
+            // Non-fatal error - league was created successfully
+            if (membersError) {
+                console.error('Failed to add some members:', membersError);
+            }
+        }
+    }
+
+    return { data: league };
+}
+
+export async function updateLeague({
+    league_id,
+    name,
+    description
+}: {
+    league_id: number;
+    name?: string;
+    description?: string;
+}) {
+    const client = await createClient();
+
+    // Get current authenticated user
+    const { data: { user }, error: userError } = await client.auth.getUser();
+
+    if (userError || !user) {
+        return {
+            error: {
+                message: 'User not authenticated'
+            }
+        };
+    }
+
+    // Verify user is the league admin
+    const { data: league } = await client
+        .from('league')
+        .select('admin_id')
+        .eq('id', league_id)
+        .single();
+
+    if (!league || league.admin_id !== user.id) {
+        return {
+            error: {
+                message: 'Only league admins can update league settings'
+            }
+        };
+    }
+
+    // Build update object (only include provided fields)
+    const updates: any = {};
+
+    if (name !== undefined) {
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+            return {
+                error: {
+                    message: 'League name cannot be empty'
+                }
+            };
+        }
+        updates.name = trimmedName;
+    }
+
+    if (description !== undefined) {
+        updates.description = description.trim() || null;
+    }
+
+    // Perform update
+    const { data, error } = await client
+        .from('league')
+        .update(updates)
+        .eq('id', league_id)
+        .select()
+        .single();
+
+    if (error) {
+        return {
+            error: {
+                message: error.message || 'Failed to update league'
+            }
+        };
+    }
+
+    return { data };
+}
+
 export async function removeMember({ email, league_id }: { email: string; league_id: number }) {
     const client = await createClient();
     const response = await client.from('league_members').delete().eq('email', email).eq('league_id', league_id);

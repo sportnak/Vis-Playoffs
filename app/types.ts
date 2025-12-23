@@ -9,6 +9,7 @@ export interface League {
     id: number
     admin_id: number
     name: string
+    description?: string
     team: Team[]
     league_members: Member[]
 }

@@ -149,11 +149,11 @@ export function LeagueHeader() {
                     </Button>
                     {league?.admin_id === user?.id && (
                         <Button
-                            onClick={() => changeTab('manage')}
+                            onClick={() => changeTab('settings')}
                             variant="plain"
                             _hover={{ textDecoration: 'underline' }}
                             style={
-                                tab === 'manage'
+                                tab === 'settings'
                                     ? {
                                           fontWeight: 'bold',
                                           textDecoration: 'underline'
@@ -161,7 +161,7 @@ export function LeagueHeader() {
                                     : null
                             }
                         >
-                            Manage
+                            Settings
                         </Button>
                     )}
                     {league?.admin_id === user?.id && (

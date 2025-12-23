@@ -30,7 +30,7 @@ export default function League() {
         );
     }
 
-    if (app.tab === 'manage') {
+    if (app.tab === 'settings') {
         return (
             <Box>
                 <LeagueHeader />

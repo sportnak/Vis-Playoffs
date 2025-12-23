@@ -6,6 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import React, { useCallback, useMemo } from 'react';
 import { useMembers, useRounds } from './hooks';
 import Rounds from '@/components/rounds';
+import LeagueInfo from '@/components/league-info';
+import GeneralSettings from '@/components/general-settings';
 
 export default function ManageLeague() {
     const { user } = useUser();
@@ -23,8 +25,16 @@ export default function ManageLeague() {
                 content: <Rounds rounds={rounds} leagueId={league?.id} />
             },
             {
+                title: 'League Info',
+                content: <LeagueInfo league={league} />
+            },
+            {
                 title: 'Members',
                 content: <MembersTable members={members} league_id={league?.id} />
+            },
+            {
+                title: 'General',
+                content: <GeneralSettings league={league} />
             }
         ],
         [members, league, rounds]

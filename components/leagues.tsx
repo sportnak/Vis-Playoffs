@@ -1,8 +1,9 @@
 'use client';
 import { useLeagues } from '@/app/hooks';
-import { Box, Center, Heading, Spinner, Table } from '@chakra-ui/react';
+import { Box, Center, Heading, Spinner, Table, HStack } from '@chakra-ui/react';
 import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import CreateLeagueDialog from './create-league-dialog';
 
 const LeaguesList = () => {
     const { leagues } = useLeagues();
@@ -22,9 +23,12 @@ const LeaguesList = () => {
 
     return (
         <Box maxW={'1000px'} mx={'auto'} p={5}>
-            <Heading as="h2" size="lg" pb="20px">
-                Your Leagues
-            </Heading>
+            <HStack justifyContent="space-between" pb="20px">
+                <Heading as="h2" size="lg">
+                    Your Leagues
+                </Heading>
+                <CreateLeagueDialog />
+            </HStack>
             <Table.Root>
                 <Table.Header>
                     <Table.Row>
