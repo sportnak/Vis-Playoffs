@@ -38,13 +38,15 @@ export const uploadDisabled = process.env.NEXT_PUBLIC_DISABLE_UPLOADS?.toLowerCa
 
 export function mapRound(round) {
     switch (round) {
+        case -2:
+            return 'Week 17';
         case -1:
             return 'Week 18';
-        case 1:
-            return 'Wildcard';
         case 2:
-            return 'Divisional';
+            return 'Wildcard';
         case 3:
+            return 'Divisional';
+        case 4:
             return 'Conference';
     }
 }

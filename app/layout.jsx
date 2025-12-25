@@ -1,9 +1,7 @@
 import '../styles/globals.css';
-import { Provider } from '@/components/ui/provider';
-import Header from '@/components/header';
-import { ReduxProvider } from '@/components/redux-provider';
+import { ThemeProvider } from 'next-themes';
+import { Providers } from '@/components/providers';
 import { Toaster } from '@/components/ui/toaster';
-import { Theme } from '@chakra-ui/react';
 
 export const metadata = {
     title: {
@@ -14,64 +12,33 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
     return (
-        <html lang="en" data-theme="lofi">
+        <html lang="en" suppressHydrationWarning>
             <head>
                 <link rel="icon" href="/favicon.svg" sizes="any" />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link
-                    href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap"
+                    href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap"
                     rel="stylesheet"
                 />
             </head>
 
-            <body
-                className="antialiased text-white"
-                style={{
-                    fontFamily: 'Roboto Condensed, sans-serif',
-                    background: `linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)`
-                }}
-            >
-                <div
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        minHeight: '100vh',
-                        paddingLeft: '1.5rem', // equivalent to px-6
-                        paddingRight: '1.5rem', // equivalent to px-6
-                        paddingBottom: '100px'
-                        // backgroundImage:
-                        //     'linear-gradient(to bottom, rgb(10 10 10 / 0%), rgb(10 10 10 / 100%)), url(/images/noise.png)'
-                    }}
+            <body className="antialiased bg-carbon">
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="dark"
+                    enableSystem={false}
+                    forcedTheme="dark"
                 >
-                    <div className="flex flex-col w-full max-w-5xl mx-auto grow">
-                        <Provider enableColorScheme="light">
-                            <Theme appearance="light">
-                                <ReduxProvider>
-                                    <div
-                                        style={{
-                                            paddingLeft: '40px',
-                                            paddingRight: '40px',
-                                            borderRadius: '20px',
-                                            paddingBottom: '100px',
-                                            position: 'fixed',
-                                            zIndex: 10,
-                                            height: '100vh',
-                                            width: 'calc(100% - 70px)', // 100%',
-                                            marginLeft: '50px',
-                                            background: `linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)`,
-                                            overflow: 'scroll'
-                                        }}
-                                        className="grow"
-                                    >
-                                        {children}
-                                    </div>
-                                    <Toaster />
-                                </ReduxProvider>
-                            </Theme>
-                        </Provider>
+                    <div className="flex flex-col min-h-screen px-6 pb-24">
+                        <Providers>
+                            <div className="grow fixed z-10 h-screen w-[calc(100%-70px)] ml-12 bg-carbon overflow-auto px-10 rounded-3xl pb-24">
+                                {children}
+                            </div>
+                            <Toaster />
+                        </Providers>
                     </div>
-                </div>
+                </ThemeProvider>
             </body>
         </html>
     );

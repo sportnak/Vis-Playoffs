@@ -1,8 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 217 26% 7%;       /* carbon #0D1117 */
+    --foreground: 215 19% 91%;      /* frost #E6ECF2 */
+    --card: 218 16% 11%;            /* steel #1A1E25 */
+    --card-foreground: 215 19% 91%;
+    --popover: 218 13% 15%;         /* graphite #222830 */
+    --popover-foreground: 215 19% 91%;
+    --primary: 195 100% 50%;        /* cyan #00C7FF */
+    --primary-foreground: 217 26% 7%;
+    --secondary: 218 13% 15%;       /* graphite #222830 */
+    --secondary-foreground: 215 19% 91%;
+    --muted: 215 11% 31%;           /* ui-grid #4A5562 */
+    --muted-foreground: 213 12% 63%; /* cool-gray #9AA5B1 */
+    --accent: 145 44% 49%;          /* neo-green #2ECC71 */
+    --accent-foreground: 217 26% 7%;
+    --destructive: 354 70% 54%;     /* semantic-danger #E63946 */
+    --destructive-foreground: 215 19% 91%;
+    --border: 215 13% 20%;          /* ui-border #2D333B */
+    --input: 215 13% 24%;           /* ui-hover #39414A */
+    --ring: 195 100% 50%;
+    --radius: 0.5rem;
+  }
+}
 
 body {
     font-family: 'Roboto Flex', sans-serif;
 }
+
 ::-webkit-scrollbar {
     display: none; /* Hide scrollbar */
 }

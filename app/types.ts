@@ -1,13 +1,13 @@
 export interface Member {
-    id: number,
+    id: string,
     email: string,
     user_id: string,
     status: 'pending' | 'accepted'
 }
 
 export interface League {
-    id: number
-    admin_id: number
+    id: string
+    admin_id: string
     name: string
     description?: string
     team: Team[]
@@ -15,10 +15,10 @@ export interface League {
 }
 
 export interface Stats {
-    id: number
-    player_id: number
-    game_id: number
-    rec_yds: number		
+    id: string
+    player_id: string
+    game_id: string
+    rec_yds: number
     rec: number
     tar: number
     rush_yds: number
@@ -34,50 +34,50 @@ export interface Stats {
 }
 
 export interface Player {
-    id: number,
+    id: string,
     is_te: boolean,
     is_rb: boolean,
     is_wr: boolean,
     is_qb: boolean,
     name: string,
-    team_id: number
+    team_id: string
     nfl_team: NFLTeam
     stats?: Stats
 }
 
 export interface NFLTeam {
-    id: number,
+    id: string,
     name: string
 }
 
 export interface Team {
-    id: number
+    id: string
     name: string,
-    pool_id: number,
-    member_id: number,
+    pool_id: string,
+    member_id: string,
     team_players: TeamPlayer[]
 }
 
 export interface TeamPlayer {
-    id: number,
-    player_id: number,
-    team_id: number
-    pool_id: number
+    id: string,
+    player_id: string,
+    team_id: string
+    pool_id: string
     team: Team
     player: Player
     score: number
 }
 
 export interface Pool {
-    id: number,
+    id: string,
     status: 'drafting' | 'complete'
-    league_id: number,
-    round_id: number,
+    league_id: string,
+    round_id: string,
     name: string
 }
 
 export interface NFLRound {
-    id: number,
+    id: string,
     round: number,
     year: number,
     status: 'pending' | 'drafting' | 'started' | 'finished'
@@ -86,7 +86,7 @@ export interface NFLRound {
 }
 
 export interface RoundSettings {
-    id: number;
+    id: string;
     rb_count: number;
     flex_count: number;
     qb_count: number;
@@ -104,6 +104,6 @@ export interface RoundSettings {
     pass_yd: number;
     fum: number;
     int: number;
-    round_id: bigint;
-    league_id: bigint;
+    round_id: string;
+    league_id: string;
 }

@@ -1,4 +1,3 @@
-import { Text, Box, Button, Fieldset, Heading, Icon, Input, Table, HStack } from '@chakra-ui/react';
 import { Field } from '@/components/ui/field';
 import { NFLRound, RoundSettings as IRoundSettings, Pool } from '@/app/types';
 import { GoGear } from 'react-icons/go';
@@ -8,9 +7,7 @@ import { assignPools, createPools, upsertSettings } from '@/actions/league';
 import { mapRound } from '@/utils';
 import { useMembers, usePools, useRounds, useTeams } from '@/app/leagues/[league_id]/manage/hooks';
 import {
-    DialogRoot,
-    DialogActionTrigger,
-    DialogBody,
+    Dialog,
     DialogContent,
     DialogFooter,
     DialogHeader,
@@ -19,6 +16,9 @@ import {
 } from './ui/dialog';
 import { toaster } from './ui/toaster';
 import { useAppSelector } from '@/app/hooks';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 
 export default function Rounds({ leagueId, rounds }: { leagueId: number; rounds: NFLRound[] }) {
     const league = useAppSelector((state) => state.app.league);
@@ -39,27 +39,25 @@ export default function Rounds({ leagueId, rounds }: { leagueId: number; rounds:
 
     return (
         <>
-            <Heading mb="20px" fontWeight={100} ml={'10px'}>
-                Rounds
-            </Heading>
-            <Box style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }} boxShadow="md" p={4}>
-                <Table.Root width="100%">
-                    <Table.Header>
-                        <Table.Row background={'none'}>
-                            <Table.ColumnHeader>Round</Table.ColumnHeader>
-                            <Table.ColumnHeader>Year</Table.ColumnHeader>
-                            <Table.ColumnHeader>Status</Table.ColumnHeader>
-                            <Table.ColumnHeader></Table.ColumnHeader>
-                            <Table.ColumnHeader>Settings</Table.ColumnHeader>
-                        </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
+            <h2 className="text-2xl font-light mb-5 ml-2">Rounds</h2>
+            <div className="bg-gray-800 rounded-lg shadow-md p-4 border border-gray-700">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="text-blue-400">Round</TableHead>
+                            <TableHead className="text-blue-400">Year</TableHead>
+                            <TableHead className="text-blue-400">Status</TableHead>
+                            <TableHead></TableHead>
+                            <TableHead className="text-blue-400">Settings</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {rounds?.map((round, index) => (
-                            <Table.Row background={'none'} key={index}>
-                                <Table.Cell>{mapRound(round.round)}</Table.Cell>
-                                <Table.Cell>{round.year}</Table.Cell>
-                                <Table.Cell>{round.status}</Table.Cell>
-                                <Table.Cell>
+                            <TableRow key={index}>
+                                <TableCell>{mapRound(round.round)}</TableCell>
+                                <TableCell>{round.year}</TableCell>
+                                <TableCell>{round.status}</TableCell>
+                                <TableCell>
                                     {!round.pools?.length && (
                                         <ConfirmPoolGeneration
                                             members={members}
@@ -69,32 +67,32 @@ export default function Rounds({ leagueId, rounds }: { leagueId: number; rounds:
                                         >
                                             <Button
                                                 aria-label="Settings"
-                                                variant="ghost"
+                                                className="font-roboto-mono"
+                                                variant="outline"
                                                 onClick={() => {
                                                     console.log(round);
                                                 }}
                                             >
-                                                Assign Pools
+                                                ASSIGN POOLS
                                             </Button>
                                         </ConfirmPoolGeneration>
                                     )}
-                                </Table.Cell>
-                                <Table.Cell w="40px">
+                                </TableCell>
+                                <TableCell className="w-10">
                                     <Button
                                         aria-label="Settings"
-                                        variant="plain"
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => handleSelectRound(round)}
                                     >
-                                        <Icon fontSize="20px">
-                                            <GoGear />
-                                        </Icon>
+                                        <GoGear className="text-xl" />
                                     </Button>
-                                </Table.Cell>
-                            </Table.Row>
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </Table.Body>
-                </Table.Root>
-            </Box>
+                    </TableBody>
+                </Table>
+            </div>
         </>
     );
 }
@@ -125,158 +123,131 @@ function RoundSettings({ round, onClose, leagueId }: { leagueId: number; round: 
     };
 
     return (
-        <Box mt={10}>
+        <div className="mt-10">
             <form onSubmit={handleSubmit(onSubmit)}>
-                <Fieldset.Root>
-                    <Fieldset.Legend as="h2" textAlign="center" mb={5} w="100%" borderBottom="2px solid gray " pb={2}>
-                        <Box display="flex" justifyContent="space-between" w="100%">
-                            <Heading as="h2">
+                <fieldset>
+                    <legend className="text-2xl text-center mb-5 w-full border-b-2 border-gray-600 pb-2">
+                        <div className="flex justify-between w-full items-center">
+                            <h2 className="text-2xl">
                                 Round Settings ({mapRound(round.round)} {round.year})
-                            </Heading>
-                            <Box>
-                                <Button onClick={onClose} variant="outline" mr={4}>
+                            </h2>
+                            <div className="flex gap-4">
+                                <Button onClick={onClose} variant="outline">
                                     Back
                                 </Button>
-                                <Button variant="solid" type="submit">
-                                    Save Settings
-                                </Button>
-                            </Box>
-                        </Box>
-                    </Fieldset.Legend>
+                                <Button type="submit">Save Settings</Button>
+                            </div>
+                        </div>
+                    </legend>
 
-                    <Fieldset.Content>
-                        <Heading as="h3">Players Count</Heading>
-                        <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={4}>
+                    <div>
+                        <h3 className="text-xl mb-4">Players Count</h3>
+                        <div className="grid grid-cols-4 gap-4">
                             <Field
                                 id="rb_count"
-                                errorText={<Text>{errors['rb_count']?.message}</Text>}
+                                errorText={errors['rb_count']?.message}
                                 label="Running Backs Count"
                             >
                                 <Input placeholder="1" type="number" {...control.register('rb_count')} />
                             </Field>
                             <Field
                                 id="flex_count"
-                                errorText={<Text>{errors['flex_count']?.message}</Text>}
+                                errorText={errors['flex_count']?.message}
                                 label="Flex Count"
                             >
                                 <Input placeholder="1" type="number" {...control.register('flex_count')} />
                             </Field>
                             <Field
                                 id="qb_count"
-                                errorText={<Text>{errors['qb_count']?.message}</Text>}
+                                errorText={errors['qb_count']?.message}
                                 label="Quarterbacks Count"
                             >
                                 <Input placeholder="1" type="number" {...control.register('qb_count')} />
                             </Field>
                             <Field
                                 id="wr_count"
-                                errorText={<Text>{errors['wr_count']?.message}</Text>}
+                                errorText={errors['wr_count']?.message}
                                 label="Wide Receivers Count"
                             >
                                 <Input placeholder="1" type="number" {...control.register('wr_count')} />
                             </Field>
                             <Field
                                 id="te_count"
-                                errorText={<Text>{errors['te_count']?.message}</Text>}
+                                errorText={errors['te_count']?.message}
                                 label="Tight Ends Count"
                             >
                                 <Input placeholder="1" type="number" {...control.register('te_count')} />
                             </Field>
                             <Field
                                 id="sf_count"
-                                errorText={<Text>{errors['sf_count']?.message}</Text>}
+                                errorText={errors['sf_count']?.message}
                                 label="Superflex Count"
                             >
                                 <Input placeholder="1" type="number" {...control.register('sf_count')} />
                             </Field>
-                        </Box>
-                        <Heading as="h3" mt={10}>
-                            Scoring
-                        </Heading>
-                        <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={4}>
-                            <Field id="rb_ppr" errorText={<Text>{errors['rb_ppr']?.message}</Text>} label="RB PPR">
+                        </div>
+                        <h3 className="text-xl mt-10 mb-4">Scoring</h3>
+                        <div className="grid grid-cols-4 gap-4">
+                            <Field id="rb_ppr" errorText={errors['rb_ppr']?.message} label="RB PPR">
                                 <Input placeholder="1" {...control.register('rb_ppr')} />
                             </Field>
-                            <Field id="wr_ppr" errorText={<Text>{errors['wr_ppr']?.message}</Text>} label="WR PPR">
+                            <Field id="wr_ppr" errorText={errors['wr_ppr']?.message} label="WR PPR">
                                 <Input placeholder="1" {...control.register('wr_ppr')} />
                             </Field>
-                            <Field id="te_ppr" errorText={<Text>{errors['te_ppr']?.message}</Text>} label="TE PPR">
+                            <Field id="te_ppr" errorText={errors['te_ppr']?.message} label="TE PPR">
                                 <Input placeholder="1" {...control.register('te_ppr')} />
                             </Field>
-                            <Field
-                                id="pass_td"
-                                errorText={<Text>{errors['pass_td']?.message}</Text>}
-                                label="Passing TD"
-                            >
+                            <Field id="pass_td" errorText={errors['pass_td']?.message} label="Passing TD">
                                 <Input placeholder="1" {...control.register('pass_td')} />
                             </Field>
-                            <Field
-                                id="rush_td"
-                                errorText={<Text>{errors['rush_td']?.message}</Text>}
-                                label="Rushing TD"
-                            >
+                            <Field id="rush_td" errorText={errors['rush_td']?.message} label="Rushing TD">
                                 <Input placeholder="1" {...control.register('rush_td')} />
                             </Field>
-                            <Field
-                                id="rec_td"
-                                errorText={<Text>{errors['rec_td']?.message}</Text>}
-                                label="Receiving TD"
-                            >
+                            <Field id="rec_td" errorText={errors['rec_td']?.message} label="Receiving TD">
                                 <Input placeholder="1" {...control.register('rec_td')} />
                             </Field>
-                            <Field
-                                id="rush_yd"
-                                errorText={<Text>{errors['rush_yd']?.message}</Text>}
-                                label="Rushing Yards"
-                            >
+                            <Field id="rush_yd" errorText={errors['rush_yd']?.message} label="Rushing Yards">
                                 <Input placeholder="1" {...control.register('rush_yd')} />
                             </Field>
-                            <Field
-                                id="rec_yd"
-                                errorText={<Text>{errors['rec_yd']?.message}</Text>}
-                                label="Receiving Yards"
-                            >
+                            <Field id="rec_yd" errorText={errors['rec_yd']?.message} label="Receiving Yards">
                                 <Input placeholder="1" {...control.register('rec_yd')} />
                             </Field>
-                            <Field
-                                id="pass_yd"
-                                errorText={<Text>{errors['pass_yd']?.message}</Text>}
-                                label="Passing Yards"
-                            >
+                            <Field id="pass_yd" errorText={errors['pass_yd']?.message} label="Passing Yards">
                                 <Input placeholder=".04" {...control.register('pass_yd')} />
                             </Field>
-                            <Field id="fum" errorText={<Text>{errors['fum']?.message}</Text>} label="Fumble">
+                            <Field id="fum" errorText={errors['fum']?.message} label="Fumble">
                                 <Input placeholder="-2" {...control.register('fum')} />
                             </Field>
-                            <Field id="int" errorText={<Text>{errors['int']?.message}</Text>} label="Int">
+                            <Field id="int" errorText={errors['int']?.message} label="Int">
                                 <Input placeholder="-2" {...control.register('int')} />
                             </Field>
-                        </Box>
-                    </Fieldset.Content>
-                </Fieldset.Root>
+                        </div>
+                    </div>
+                </fieldset>
             </form>
-        </Box>
+        </div>
     );
 }
 
 function ConfirmPoolGeneration({ children, leagueId, roundId, onClose, members }) {
     const [count, setCount] = useState(1);
+    const [open, setOpen] = useState(false);
 
     const handleGeneratePools = useCallback(async () => {
         const pools = await createPools(count, leagueId, roundId);
         await assignPools({ members, pools });
-
+        setOpen(false);
         onClose();
-    }, [count]);
+    }, [count, leagueId, roundId, members, onClose]);
 
     return (
-        <DialogRoot size="md" placement="center">
-            <DialogTrigger>{children}</DialogTrigger>
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Pool Generation</DialogTitle>
                 </DialogHeader>
-                <DialogBody>
+                <div className="py-4">
                     <Field label="Number of Pools">
                         <Input
                             type="number"
@@ -285,18 +256,14 @@ function ConfirmPoolGeneration({ children, leagueId, roundId, onClose, members }
                             onChange={(e) => setCount(parseInt(e.target.value))}
                         />
                     </Field>
-                </DialogBody>
+                </div>
                 <DialogFooter>
-                    <DialogActionTrigger>
-                        <Button variant="outline">Cancel</Button>
-                    </DialogActionTrigger>
-                    <DialogActionTrigger>
-                        <Button variant="solid" onClick={handleGeneratePools}>
-                            Confirm
-                        </Button>
-                    </DialogActionTrigger>
+                    <Button variant="outline" onClick={() => setOpen(false)}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleGeneratePools}>Confirm</Button>
                 </DialogFooter>
             </DialogContent>
-        </DialogRoot>
+        </Dialog>
     );
 }

@@ -5,7 +5,7 @@ import { setRounds } from "@/store/appSlice";
 import { setMembers, } from "@/store/leagueSlice";
 import { useCallback, useEffect, useState } from "react";
 
-export function useMembers(league_id: number) {
+export function useMembers(league_id: string) {
     const members = useAppSelector((state) => state.league.members);
     const dispatch = useAppDispatch();
     const load = useCallback(async() => {
@@ -23,12 +23,13 @@ export function useMembers(league_id: number) {
   return { members, load}
 }
 
-export function useRounds(league_id: number) {
+export function useRounds(league_id: string) {
     const rounds = useAppSelector((state) => state.app.rounds);
     const dispatch = useAppDispatch();
 
     const load = useCallback(async () => {
         const response = await loadRounds(league_id);
+        console.log(response.data)
         dispatch(setRounds(response.data));
     }, [league_id])
 
@@ -44,7 +45,7 @@ export function useRounds(league_id: number) {
 
 }
 
-export function usePools(league_id: number, round_id?: number) {
+export function usePools(league_id: string, round_id?: string) {
     const [pools, setPools] = useState([])
 
     const load = useCallback(async() => {
@@ -63,7 +64,7 @@ export function usePools(league_id: number, round_id?: number) {
   return { pools, load }
 }
 
-export function useTeams(pool_ids: number[]) {
+export function useTeams(pool_ids: string[]) {
     const [teams, setTeams] = useState<Team[]>([])
 
     const load = useCallback(async() => {

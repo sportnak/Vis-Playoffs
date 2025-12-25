@@ -1,20 +1,4 @@
 import { updateName } from '@/actions/league';
-import {
-    Box,
-    Button,
-    Center,
-    createListCollection,
-    HStack,
-    Icon,
-    Input,
-    SelectContent,
-    SelectItem,
-    SelectLabel,
-    SelectRoot,
-    SelectTrigger,
-    SelectValueText,
-    VStack
-} from '@chakra-ui/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import teams from './teams';
 import { toaster } from './ui/toaster';
@@ -22,15 +6,22 @@ import { useMember, useTeam } from '@/app/leagues/[league_id]/draft/hooks';
 import { useParams } from 'next/navigation';
 import { useApp, useAppDispatch, useAppSelector, useLeague, useUser } from '@/app/hooks';
 import { useRounds } from '@/app/leagues/[league_id]/manage/hooks';
-import { InputGroup } from './ui/input-group';
-import { BiChevronDown } from 'react-icons/bi';
-import { Select } from './select';
-import { PiPencil } from 'react-icons/pi';
 import { LuPencil } from 'react-icons/lu';
 import { setRoundId, setTab, setTeamName } from '@/store/appSlice';
+import { Button } from './ui/button';
+import { InputWithAddon } from './ui/input-with-addon';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const roundItems = {
     items: [
+        {
+            value: '-2',
+            label: 'Week 17'
+        },
+        {
+            value: '-1',
+            label: 'Week 18'
+        },
         {
             value: '2',
             label: 'Wildcard'
@@ -57,11 +48,11 @@ export function LeagueHeader() {
         dispatch(setTab(tab));
     }, []);
 
-    const changeRound = useCallback((round_id: number) => {
+    const changeRound = useCallback((round_id: string) => {
         dispatch(setRoundId(round_id));
     }, []);
     useEffect(() => {
-        changeRound(parseInt(selectedRoundId));
+        changeRound(selectedRoundId);
     }, [selectedRoundId]);
 
     const [localName, setLocalName] = useState(teamName);
@@ -101,115 +92,69 @@ export function LeagueHeader() {
     }, []);
     const isMobile = innerWidth < 768;
 
-    const Component = isMobile ? VStack : HStack;
     return (
-        <HStack
-            justifyContent="space-between"
-            alignItems="center"
-            style={{
-                width: '100%',
-                paddingTop: '20px',
-                paddingBottom: '20px'
-            }}
-            flexWrap={'wrap'}
-        >
+        <div className="flex justify-between items-center w-full py-5 flex-wrap">
             {!isMobile && (
-                <HStack>
+                <div className="flex gap-2">
                     <Button
-                        variant="plain"
-                        _hover={{
-                            textDecoration: 'underline'
-                        }}
+                        variant={tab === 'scoreboard' ? 'solid' : 'secondary'}
+                        className={`font-roboto-mono`}
                         onClick={() => changeTab('scoreboard')}
-                        style={
-                            tab === 'scoreboard'
-                                ? {
-                                      fontWeight: 'bold',
-                                      textDecoration: 'underline'
-                                  }
-                                : null
-                        }
                     >
-                        Scoreboard
+                        SCOREBOARD
                     </Button>
                     <Button
                         onClick={() => changeTab('draft')}
-                        variant="plain"
-                        _hover={{ textDecoration: 'underline' }}
-                        style={
-                            tab === 'draft'
-                                ? {
-                                      fontWeight: 'bold',
-                                      textDecoration: 'underline'
-                                  }
-                                : null
-                        }
+                        variant={tab === 'draft' ? 'solid' : 'secondary'}
+                        className={`font-roboto-mono`}
                     >
-                        Draft
+                        DRAFT
                     </Button>
                     {league?.admin_id === user?.id && (
                         <Button
                             onClick={() => changeTab('settings')}
-                            variant="plain"
-                            _hover={{ textDecoration: 'underline' }}
-                            style={
-                                tab === 'settings'
-                                    ? {
-                                          fontWeight: 'bold',
-                                          textDecoration: 'underline'
-                                      }
-                                    : null
-                            }
+                            variant={tab === 'settings' ? 'solid' : 'secondary'}
+                            className={`font-roboto-mono letter-spacing-[1.6px]`}
                         >
-                            Settings
+                            SETTINGS
                         </Button>
                     )}
                     {league?.admin_id === user?.id && (
                         <Button
                             onClick={() => changeTab('teams')}
-                            variant="plain"
-                            _hover={{ textDecoration: 'underline' }}
-                            style={
-                                tab === 'teams'
-                                    ? {
-                                          fontWeight: 'bold',
-                                          textDecoration: 'underline'
-                                      }
-                                    : null
-                            }
+                            variant={tab === 'teams' ? 'solid' : 'secondary'}
+                            className={`font-roboto-mono`}
                         >
-                            Teams
+                            TEAMS
                         </Button>
                     )}
-                </HStack>
+                </div>
             )}
-            <Component alignItems="flex-start">
-                <Box>
-                    <Select
-                        value={roundItems.items.find((x) => x.value === selectedRoundId)}
-                        items={roundItems.items}
-                        onChange={(e) => setValue(e.value)}
+            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} items-start gap-2`}>
+                <div>
+                    <Select value={roundItems.items.find((x) => x.value === selectedRoundId)?.value} onValueChange={(e) => setValue(e)}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Select pool" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {roundItems.items.map((item) => (
+                                <SelectItem key={item.value} value={item.value}>
+                                    {item.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <InputWithAddon
+                        endElement={<LuPencil className="text-xl" />}
+                        className="bg-gray-100 dark:bg-gray-800 text-sm w-[250px]"
+                        value={localName}
+                        onChange={handleNameChange}
+                        placeholder="Name"
                     />
-                </Box>
-                <Box>
-                    <InputGroup
-                        endElement={
-                            <Icon fontSize="20px">
-                                <LuPencil />
-                            </Icon>
-                        }
-                    >
-                        <Input
-                            variant="subtle"
-                            style={{ background: 'rgba(169, 169, 169, 0.1)', fontSize: '14px' }}
-                            value={localName}
-                            onChange={handleNameChange}
-                            w="250px"
-                            placeholder="Name"
-                        />
-                    </InputGroup>
-                </Box>
-            </Component>
-        </HStack>
+                </div>
+            </div>
+        </div>
     );
 }

@@ -1,11 +1,13 @@
 'use client';
 import { updateLeague } from '@/actions/league';
 import { League } from '@/app/types';
-import { Box, Button, Fieldset, Heading, Input, Textarea } from '@chakra-ui/react';
 import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { Field } from './ui/field';
 import { toaster } from './ui/toaster';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 
 export default function LeagueInfo({ league }: { league: League }) {
     const {
@@ -43,17 +45,11 @@ export default function LeagueInfo({ league }: { league: League }) {
     );
 
     return (
-        <Box>
-            <Heading mb="20px" fontWeight={100} ml={'10px'}>
-                League Information
-            </Heading>
-            <Box
-                style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}
-                boxShadow="md"
-                p={4}
-            >
+        <div>
+            <h2 className="text-2xl font-light mb-5 ml-2">League Information</h2>
+            <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg shadow-md p-4">
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <Fieldset.Root>
+                    <fieldset>
                         <Field label="League Name" invalid={!!errors.name} errorText={errors.name?.message}>
                             <Input {...register('name', { required: 'Name is required' })} />
                         </Field>
@@ -66,12 +62,12 @@ export default function LeagueInfo({ league }: { league: League }) {
                             />
                         </Field>
 
-                        <Button type="submit" disabled={isSubmitting} mt={4}>
+                        <Button type="submit" disabled={isSubmitting} className="mt-4">
                             {isSubmitting ? 'Saving...' : 'Save Changes'}
                         </Button>
-                    </Fieldset.Root>
+                    </fieldset>
                 </form>
-            </Box>
-        </Box>
+            </div>
+        </div>
     );
 }

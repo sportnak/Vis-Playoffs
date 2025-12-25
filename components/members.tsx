@@ -1,42 +1,41 @@
-import { Box, Button, Input, Table, Text } from '@chakra-ui/react';
-import {
-    DialogRoot,
-    DialogActionTrigger,
-    DialogBody,
-    DialogCloseTrigger,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger
-} from './ui/dialog';
 import { useForm } from 'react-hook-form';
 import { inviteMember, removeMember, resetPools } from '@/actions/league';
 import { Member } from '@/app/types';
-import { Toaster, toaster } from '@/components/ui/toaster';
+import {  toast } from '@/components/ui/toaster';
 import { useAppDispatch, useLeagues, useUser } from '@/app/hooks';
 import { setMembers } from '@/store/leagueSlice';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+    DialogTrigger,
+    DialogClose
+} from './ui/dialog';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
+import { P } from './ui/text';
 
 export default function MembersTable({ league_id, members }: { league_id: number; members: Member[] }) {
     const { handleSubmit, control } = useForm<{ email: string }>();
     const { refresh } = useLeagues();
     const { user } = useUser();
     const dispatch = useAppDispatch();
+    const [dialogOpen, setDialogOpen] = useState(false);
+
     const onSubmit = async (data: { email: string }) => {
         const res = await inviteMember({ email: data.email, league_id });
         if (res.error) {
-            toaster.create({
-                title: (res as any).statusText === 'Conflict' ? 'Member Already Exists' : 'Error',
-                type: 'error'
+            toast.error((res as any).statusText === 'Conflict' ? 'Member Already Exists' : 'Error', {
             });
             return;
         }
         await resetPools(league_id);
-        toaster.create({
-            title: 'Member Invited',
-            type: 'success'
-        });
+        toast.success('Member Invited');
+        setDialogOpen(false);
         refresh();
     };
 
@@ -44,28 +43,22 @@ export default function MembersTable({ league_id, members }: { league_id: number
         async (member: Member) => {
             const res = await removeMember({ email: member.email, league_id });
             if (res.error) {
-                toaster.create({
-                    title: 'Failed to remove member',
-                    type: 'error'
-                });
+                toast.error('Failed to remove member');
                 return;
             }
             await resetPools(league_id);
-            toaster.create({
-                title: 'Member Removed',
-                type: 'success'
-            });
+            toast.success('Member Removed');
             dispatch(setMembers(null));
         },
         [league_id]
     );
 
     return (
-        <Box overflowX="auto">
-            <Box mb={4} display="flex" justifyContent={'flex-end'} w="100%">
-                <DialogRoot size={'md'} placement={'center'}>
-                    <DialogTrigger>
-                        <Button as="div" variant="outline">
+        <div className="overflow-x-auto">
+            <div className="mb-4 flex justify-end w-full">
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline">
                             Invite Member
                         </Button>
                     </DialogTrigger>
@@ -74,47 +67,44 @@ export default function MembersTable({ league_id, members }: { league_id: number
                             <DialogHeader>
                                 <DialogTitle>Invite Member</DialogTitle>
                             </DialogHeader>
-                            <DialogBody>
-                                <Text>If Pools have already been created - they will be deleted and reset.</Text>
+                            <div className="space-y-4 py-4">
+                                <P className="text-cool-gray">If Pools have already been created - they will be deleted and reset.</P>
                                 <Input type="email" placeholder="Enter email" {...control.register('email')} />
-                            </DialogBody>
+                            </div>
                             <DialogFooter>
-                                <DialogActionTrigger asChild>
+                                <DialogClose asChild>
                                     <Button variant="outline">Cancel</Button>
-                                </DialogActionTrigger>
-                                <DialogActionTrigger asChild>
-                                    <Button type="submit">Invite</Button>
-                                </DialogActionTrigger>
+                                </DialogClose>
+                                <Button type="submit">Invite</Button>
                             </DialogFooter>
-                            <DialogCloseTrigger />
                         </form>
                     </DialogContent>
-                </DialogRoot>
-            </Box>
-            <Table.Root width="100%">
-                <Table.Header>
-                    <Table.Row>
-                        <Table.ColumnHeader>Email</Table.ColumnHeader>
-                        <Table.ColumnHeader>Status</Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
-                    </Table.Row>
-                </Table.Header>
-                <Table.Body>
+                </Dialog>
+            </div>
+            <Table className="w-full">
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
                     {members?.map((member, index) => (
-                        <Table.Row key={index}>
-                            <Table.Cell>{member.email}</Table.Cell>
-                            <Table.Cell>{member.status}</Table.Cell>
-                            <Table.Cell>
+                        <TableRow key={index}>
+                            <TableCell>{member.email}</TableCell>
+                            <TableCell>{member.status}</TableCell>
+                            <TableCell>
                                 {member.email !== user?.email && (
                                     <Button variant="ghost" onClick={() => handleRemoveMember(member)}>
                                         Remove
                                     </Button>
                                 )}
-                            </Table.Cell>
-                        </Table.Row>
+                            </TableCell>
+                        </TableRow>
                     ))}
-                </Table.Body>
-            </Table.Root>
-        </Box>
+                </TableBody>
+            </Table>
+        </div>
     );
 }

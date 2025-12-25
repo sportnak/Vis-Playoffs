@@ -34,9 +34,9 @@ export function useNFLTeams() {
 }
 
 export function useNFLPlayers(
-    query: { drafted?: boolean; name?: string; pos: string; team_ids?: number[]; round_id: string },
-    pool_id: number,
-    league_id: number
+    query: { drafted?: boolean; name?: string; pos: string; team_ids?: string[]; round_id: string },
+    pool_id: string,
+    league_id: string
 ) {
     const [nflPlayers, setNFLPlayers] = useState<any>();
 
@@ -46,6 +46,7 @@ export function useNFLPlayers(
         }
         const response = await loadNFLPlayers(query, pool_id, league_id);
         const data = response.data;
+        console.log('PLayers', data, { query, pool_id, league_id });
         if (query.drafted) {
             data?.sort((a, b) => (b.team_players?.[0]?.pick_number ?? 0) - (a.team_players?.[0]?.pick_number ?? 0));
         }
@@ -68,7 +69,7 @@ export function useNFLPlayers(
     return { nflPlayers, load };
 }
 
-export function useDraft(league_id: number, round_id: number, member: Member) {
+export function useDraft(league_id: string, round_id: string, member: Member) {
     const pool = useAppSelector((state) => state.draft.pool);
     const team = useAppSelector((state) => state.draft.team);
     const pool_id = useMemo(() => [pool?.id], [pool]);
@@ -99,7 +100,7 @@ export function useDraft(league_id: number, round_id: number, member: Member) {
     }, [load]);
 
     const handleDraftPlayer = useCallback(
-        async (player_id: number, team_id: number) => {
+        async (player_id: string, team_id: string) => {
             const response = await draftPlayer(league_id, round_id, pool.id, team.id, player_id);
             return response;
         },
@@ -117,7 +118,7 @@ export function useDraft(league_id: number, round_id: number, member: Member) {
     };
 }
 
-export function usePool(round_id: number, member_id: number) {
+export function usePool(round_id: string, member_id: string) {
     const [pool, setPool] = useState([]);
 
     const load = useCallback(async () => {
@@ -137,7 +138,7 @@ export function usePool(round_id: number, member_id: number) {
     };
 }
 
-export function useTeam(league_id: number, member_id) {
+export function useTeam(league_id: string, member_id: string) {
     const [team, setTeam] = useState<Team>();
 
     const handleUpdateName = useCallback(
@@ -170,7 +171,7 @@ export function useTeam(league_id: number, member_id) {
     };
 }
 
-export function useMember(league_id: number, user: User) {
+export function useMember(league_id: string, user: User) {
     const [members, setMembers] = useState([]);
 
     const load = useCallback(async () => {
@@ -178,6 +179,7 @@ export function useMember(league_id: number, user: User) {
             return;
         }
         const response = await loadMember(league_id, user);
+        console.log(response)
         setMembers(response.data);
     }, [league_id, user]);
 

@@ -1,70 +1,66 @@
 'use client';
-import { useApp, useAppSelector, useLeague, useLeagues, useUser } from '@/app/hooks';
-import { Box, Button, Center, DialogTrigger, Heading, HStack, Table, Tabs, Text } from '@chakra-ui/react';
-import { redirect, useParams, useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo } from 'react';
-import { Scoreboard } from '@/components/scoreboard';
+import { useParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { useURLState } from '@/hooks/use-url-state';
+import { useLeaguePageData } from '@/hooks/use-league-data';
+import { useUIStore } from '@/stores/ui-store';
 import { LeagueHeader } from '@/components/league-header';
+import { Scoreboard } from '@/components/scoreboard';
 import Rounds from '@/components/rounds';
 import { Draft } from '@/components/draft';
 import MembersTable from '@/components/members';
+import {
+    LeagueHeaderSkeleton,
+    ScoreboardSkeleton,
+    DraftSkeleton,
+    SettingsSkeleton,
+    TeamsSkeleton
+} from '@/components/skeletons/league-skeleton';
+import { P } from '@/components/ui/text';
 
 export default function League() {
     const { league_id } = useParams();
-    const { app } = useApp(league_id as string);
+    const { tab, round_id, updateURLState } = useURLState();
+    const { isLoading, isError, league, rounds } = useLeaguePageData(league_id as string);
 
-    if (!app.league) {
+    // Sync URL state to Zustand UI store
+    useEffect(() => {
+        useUIStore.getState().setTab(tab);
+    }, [tab]);
+
+    useEffect(() => {
+        useUIStore.getState().setRoundId(round_id);
+    }, [round_id]);
+
+    // Loading state with appropriate skeletons
+    if (isLoading) {
         return (
-            <Center>
-                <Text>Loading...</Text>
-            </Center>
+            <div>
+                <LeagueHeaderSkeleton />
+                {tab === 'scoreboard' && <ScoreboardSkeleton />}
+                {tab === 'draft' && <DraftSkeleton />}
+                {tab === 'settings' && <SettingsSkeleton />}
+                {tab === 'teams' && <TeamsSkeleton />}
+            </div>
         );
     }
 
-    if (app.tab === 'scoreboard') {
+    // Error state
+    if (isError || !league) {
         return (
-            <Box>
-                <LeagueHeader />
-                <Scoreboard league_id={league_id} />
-            </Box>
-        );
-    }
-
-    if (app.tab === 'settings') {
-        return (
-            <Box>
-                <LeagueHeader />
-                <Rounds rounds={app.rounds} leagueId={app.league?.id} />
-            </Box>
-        );
-    }
-
-    if (app.tab === 'draft') {
-        return (
-            <Box>
-                <LeagueHeader />
-                <Draft leagueId={app.league?.id} roundId={app.round_id} />
-            </Box>
-        );
-    }
-
-    if (app.tab === 'teams') {
-        return (
-            <Box>
-                <LeagueHeader />
-                <MembersTable league_id={app.league?.id} members={app.league.league_members} />
-            </Box>
+            <div className="flex flex-col items-center justify-center min-h-screen">
+                <P className="text-xl">Failed to load league</P>
+            </div>
         );
     }
 
     return (
-        <Box>
+        <div>
             <LeagueHeader />
-            <HStack w="100%" justifyContent="space-between">
-                <Heading as="h2" size="lg" pb="20px">
-                    {app.league.name}
-                </Heading>
-            </HStack>
-        </Box>
+            {tab === 'scoreboard' && <Scoreboard league_id={league_id as string} />}
+            {tab === 'settings' && <Rounds rounds={rounds} leagueId={league.id} />}
+            {tab === 'draft' && <Draft leagueId={league.id} roundId={round_id} />}
+            {tab === 'teams' && <MembersTable league_id={league.id} members={league.league_members} />}
+        </div>
     );
 }

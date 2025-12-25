@@ -1,23 +1,11 @@
-import {
-    Text,
-    Box,
-    createListCollection,
-    HStack,
-    VStack,
-    Button,
-    Heading,
-    Center,
-    Table,
-    Grid
-} from '@chakra-ui/react';
-import { SelectContent, SelectItem, SelectLabel, SelectRoot, SelectTrigger, SelectValueText } from './ui/select';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NFLRound, Player, Pool, RoundSettings, Stats, Team, TeamPlayer } from '@/app/types';
 import { toaster } from './ui/toaster';
 import { mapPos } from '@/app/util';
-import { Select } from './select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Tooltip } from './ui/tooltip';
-import { set } from 'react-hook-form';
+import { Button } from './ui/button';
+import { H3, P } from './ui/text';
 
 export default function Teams({
     teams,
@@ -32,42 +20,42 @@ export default function Teams({
     round: NFLRound;
     dropPlayer: (player_id: number) => void;
 }) {
-    const teamSelect = useMemo(() => {
-        if (!teams) {
-            return;
-        }
+    const [selectedTeamId, setSelectedTeamId] = useState<string>('');
 
-        return teams?.map((team) => {
-            return {
-                value: team.id.toString(),
-                label: team.name
-            };
-        });
-    }, [teams]);
-    const [value, setValue] = useState<any>({});
     useEffect(() => {
         const team = teams?.find((team) => team.member_id === memberId);
         if (!team) {
             return;
         }
-        setValue({ value: team.id, label: team.name });
+        setSelectedTeamId(team.id.toString());
     }, [memberId, teams]);
 
-    const team = useMemo(() => teams?.find((team) => team.id == value?.value), [teams, value]);
+    const team = useMemo(() => teams?.find((team) => team.id.toString() === selectedTeamId), [teams, selectedTeamId]);
     if (!teams?.length || !pool) {
         return;
     }
 
     return (
-        <Box p="20px" bg="rgba(255, 255, 255, 0.5)" boxShadow="md" borderRadius="6px" h="100%">
-            <Heading fontWeight={300} pb={2}>
+        <div className="p-5 bg-white/50 shadow-md rounded-md h-full">
+            <H3 className="font-light pb-2">
                 Team
-            </Heading>
-            <Box pb={2} w="100%">
-                {teamSelect && <Select items={teamSelect} value={value} onChange={(e) => setValue(e)} />}
-            </Box>
+            </H3>
+            <div className="pb-2 w-full">
+                <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {teams?.map((team) => (
+                            <SelectItem key={team.id} value={team.id.toString()}>
+                                {team.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
             <TeamCard showScore={false} team={team} round={round} pool={pool} memberId={memberId} />
-        </Box>
+        </div>
     );
 }
 
@@ -99,7 +87,7 @@ export function TeamCard({ team, round, pool, memberId, showScore }) {
     }, [qbCount, pool?.id, wrCount, rbCount, teCount, flexCount, team, sfCount]);
     return (
         round?.round_settings && (
-            <VStack w="100%">
+            <div className="w-full space-y-2">
                 {Array.from({ length: qbCount }).map((_, index) => (
                     <PlayerItem
                         showScore={showScore}
@@ -154,7 +142,7 @@ export function TeamCard({ team, round, pool, memberId, showScore }) {
                         dropPlayer={showDrop ? handleDropPlayer : null}
                     />
                 ))}
-            </VStack>
+            </div>
         )
     );
 }
@@ -186,44 +174,41 @@ function PlayerItem({
             open={open}
             onOpenChange={(e) => setOpen(e.open)}
         >
-            <HStack
-                w="100%"
-                justifyContent={'space-between'}
+            <div
+                className="w-full flex justify-between items-center"
                 onMouseEnter={() => setOpen(true)}
                 onMouseLeave={() => setOpen(false)}
                 onClick={() => setOpen((op) => !op)}
             >
-                <HStack>
-                    <Center
-                        bg="linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)"
-                        h="40px"
-                        w="40px"
-                        fontSize="12px"
-                        borderRadius="20px"
+                <div className="flex items-center gap-2">
+                    <div
+                        className="h-10 w-10 rounded-full flex items-center justify-center text-xs"
+                        style={{
+                            background: 'linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)'
+                        }}
                     >
                         {position}
-                    </Center>
+                    </div>
                     {player ? (
                         <>
-                            <Text fontSize="12px" textAlign={'left'}>
+                            <span className="text-xs text-left text-frost">
                                 {player.player.name}
-                            </Text>
-                            {dropPlayer && <Button onClick={() => dropPlayer(player.player.id)}>X</Button>}
+                            </span>
+                            {dropPlayer && <Button size="sm" onClick={() => dropPlayer(player.player.id)}>X</Button>}
                         </>
                     ) : (
-                        <Box>
-                            <Text color="gray.400" fontSize="12px" fontWeight={100}>
+                        <div>
+                            <span className="text-cool-gray text-xs font-light">
                                 None Drafted
-                            </Text>
-                        </Box>
+                            </span>
+                        </div>
                     )}
-                </HStack>
+                </div>
                 {showScore && player && (
-                    <Text
-                        fontSize="12px"
-                        fontWeight={'bold'}
-                        color={
-                            (player as any)?.stats == null
+                    <span
+                        className="text-xs font-bold"
+                        style={{
+                            color: (player as any)?.stats == null
                                 ? 'black'
                                 : player.score < 5
                                   ? '#f94144'
@@ -232,12 +217,12 @@ function PlayerItem({
                                     : player.score < 20
                                       ? '#90be6d'
                                       : '#277da1'
-                        }
+                        }}
                     >
                         {player?.score} pts
-                    </Text>
+                    </span>
                 )}
-            </HStack>
+            </div>
         </Tooltip>
     );
 }
@@ -276,27 +261,27 @@ function Points({ player }: { player: TeamPlayer }) {
     const stats = (player as any)?.stats;
     const stat_columns = player.player.is_qb ? qb_stats : player.player.is_rb ? rb_stats : wr_stats;
     return (
-        <Box color="black" p={4}>
-            <Heading fontSize="14px" mb={2} fontWeight={'bold'}>
+        <div className="text-black p-4">
+            <h4 className="text-sm mb-2 font-bold">
                 POINTS: {player.score}
-            </Heading>
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
                 {stat_columns?.map((stat) => (
-                    <VStack alignItems={'flex-start'} key={stat} gap={0.5}>
-                        <Text color={'gray.500'} fontSize="12px">
+                    <div className="flex flex-col items-start gap-0.5" key={stat}>
+                        <span className="text-cool-gray text-xs">
                             {mapStatName(stat).toUpperCase()}
-                        </Text>
-                        <Text fontSize="12px" fontWeight={'bold'}>
+                        </span>
+                        <span className="text-xs font-bold">
                             {stat === 'pass_att'
                                 ? `${stats['comp']}/${stats[stat]}`
                                 : stat === 'rec'
                                   ? `${stats[stat]}/${stats['tar']}`
                                   : (stats[stat] ?? 0)}
-                        </Text>
-                    </VStack>
+                        </span>
+                    </div>
                 ))}
-            </Grid>
-        </Box>
+            </div>
+        </div>
     );
 }
 

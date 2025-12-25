@@ -1,13 +1,15 @@
 'use client';
 import { useLeague, useUser } from '@/app/hooks';
 import MembersTable from '@/components/members';
-import { Box, Button, Center, Heading, Tabs, Text } from '@chakra-ui/react';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useCallback, useMemo } from 'react';
 import { useMembers, useRounds } from './hooks';
 import Rounds from '@/components/rounds';
 import LeagueInfo from '@/components/league-info';
 import GeneralSettings from '@/components/general-settings';
+import { H2, P } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 export default function ManageLeague() {
     const { user } = useUser();
@@ -21,19 +23,19 @@ export default function ManageLeague() {
     const items = useMemo(
         () => [
             {
-                title: 'Rounds',
+                title: 'ROUNDS',
                 content: <Rounds rounds={rounds} leagueId={league?.id} />
             },
             {
-                title: 'League Info',
+                title: 'LEAGUE INFO',
                 content: <LeagueInfo league={league} />
             },
             {
-                title: 'Members',
+                title: 'MEMBERS',
                 content: <MembersTable members={members} league_id={league?.id} />
             },
             {
-                title: 'General',
+                title: 'GENERAL',
                 content: <GeneralSettings league={league} />
             }
         ],
@@ -46,9 +48,9 @@ export default function ManageLeague() {
 
     if (!league || !user) {
         return (
-            <Center>
-                <Text>Loading...</Text>
-            </Center>
+            <div className="flex justify-center">
+                <P>Loading...</P>
+            </div>
         );
     }
 
@@ -58,43 +60,32 @@ export default function ManageLeague() {
     }
 
     return (
-        <Box maxW={'1000px'} mx={'auto'} p={5}>
-            <Heading as="h2" size="lg" pb="20px">
-                <Button variant="plain" fontSize="md" onClick={handleLeagueHome}>
+        <div className="max-w-[1000px] mx-auto p-[5px]">
+            <H2 className="pb-5 flex items-center gap-2">
+                <Button variant="plain" size="sm" onClick={handleLeagueHome}>
                     {'<'}
                 </Button>
                 {league.name} Settings
-            </Heading>
+            </H2>
 
-            <Tabs.Root defaultValue="Rounds" width="full">
-                <Tabs.List>
+            <Tabs defaultValue="Rounds" className="w-full">
+                <TabsList className="w-full">
                     {items.map((item, index) => (
-                        <Tabs.Trigger key={index} value={item.title}>
+                        <TabsTrigger key={index} value={item.title}>
                             {item.title}
-                        </Tabs.Trigger>
+                        </TabsTrigger>
                     ))}
-                </Tabs.List>
-                <Box pos="relative" minH="200px" width="full">
-                    {items.map((item, index) => (
-                        <Tabs.Content
-                            key={index}
-                            value={item.title}
-                            position="absolute"
-                            inset="0"
-                            _open={{
-                                animationName: 'fade-in, scale-in',
-                                animationDuration: '300ms'
-                            }}
-                            _closed={{
-                                animationName: 'fade-out, scale-out',
-                                animationDuration: '120ms'
-                            }}
-                        >
-                            {item.content}
-                        </Tabs.Content>
-                    ))}
-                </Box>
-            </Tabs.Root>
-        </Box>
+                </TabsList>
+                {items.map((item, index) => (
+                    <TabsContent
+                        key={index}
+                        value={item.title}
+                        className="min-h-[200px]"
+                    >
+                        {item.content}
+                    </TabsContent>
+                ))}
+            </Tabs>
+        </div>
     );
 }

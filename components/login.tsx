@@ -1,13 +1,14 @@
 import { login, signup } from '@/app/login/actions';
-import { Box, Heading, Stack, Input, Button, Fieldset, Spinner } from '@chakra-ui/react';
 import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/toaster';
 
 import { useForm } from 'react-hook-form';
-import { toaster } from './ui/toaster';
 import { useCallback, useState } from 'react';
 
 export function LoginComponent({ toggleComponent }) {
-    const { handleSubmit, control } = useForm<{ email: string; password: string }>();
+    const { handleSubmit, register } = useForm<{ email: string; password: string }>();
     const [isLoading, setIsLoading] = useState(false);
 
     const onSubmit = async (data: { email: string; password: string }) => {
@@ -15,40 +16,34 @@ export function LoginComponent({ toggleComponent }) {
         const result = await login(data);
         setIsLoading(false);
         if (result?.error) {
-            toaster.create({
-                type: 'error',
-                title: 'Invalid login. Make sure you confirmed your email.'
-            });
+            toast.error('Invalid login. Make sure you confirmed your email.');
             return;
         }
-        toaster.create({
-            type: 'success',
-            title: 'Login successful'
-        });
+        toast.success('Login successful');
     };
 
     return (
-        <Box maxW="md" mx="auto" mt={10} p={5} background="rgba(255, 255, 255, 0.3)" boxShadow={'md'} borderRadius="lg">
-            <Heading as="h2" size="lg" textAlign="center" mb={5}>
+        <div className="max-w-md mx-auto mt-10 p-5 bg-steel shadow-md rounded-lg border border-ui-border">
+            <h2 className="text-2xl text-center mb-5 text-frost">
                 Login
-            </Heading>
+            </h2>
             <form onSubmit={handleSubmit(onSubmit)}>
-                <Stack gap={4}>
+                <div className="flex flex-col gap-4">
                     <Field id="email" label="Email">
-                        <Input type="email" placeholder="Enter your email" {...control.register('email')} />
+                        <Input type="email" placeholder="Enter your email" {...register('email')} />
                     </Field>
                     <Field id="password" label="Password">
-                        <Input type="password" placeholder="Enter your password" {...control.register('password')} />
+                        <Input type="password" placeholder="Enter your password" {...register('password')} />
                     </Field>
-                    <Button variant="solid" type="submit" disabled={isLoading}>
-                        {isLoading ? <Spinner /> : 'Login'}
+                    <Button variant="solid" type="submit" loading={isLoading}>
+                        Login
                     </Button>
-                    <Button variant="plain" onClick={isLoading ? null : toggleComponent}>
+                    <Button variant="plain" onClick={isLoading ? undefined : toggleComponent} disabled={isLoading}>
                         Register
                     </Button>
-                </Stack>
+                </div>
             </form>
-        </Box>
+        </div>
     );
 }
 
@@ -61,45 +56,38 @@ export function RegisterComponent({ toggleComponent }) {
         setIsLoading(false);
 
         if (result?.error) {
-            toaster.create({
-                type: 'error',
-                title: result.error.message
-            });
+            toast.error(result.error.message);
             return;
         }
-        toaster.create({
-            type: 'success',
-            title: 'Register successful.',
+        toast.success('Register successful.', {
             description: 'Please check your email to verify your account.'
         });
     }, []);
 
     return (
-        <Box background="rgba(255, 255, 255, 0.3)" boxShadow={'md'} maxW="md" mx="auto" mt={10} p={5} borderRadius="lg">
+        <div className="bg-steel shadow-md max-w-md mx-auto mt-10 p-5 rounded-lg border border-ui-border">
             <form onSubmit={handleSubmit(handleRegister)}>
-                <Fieldset.Root>
-                    <Fieldset.Legend as="h2" textAlign="center" mb={5}>
+                <fieldset className="flex flex-col gap-4">
+                    <legend className="text-2xl text-center mb-5 text-frost">
                         Register
-                    </Fieldset.Legend>
-                    <Fieldset.Content>
-                        <Field id="name" label="Name">
-                            <Input type="name" placeholder="Enter your name" />
-                        </Field>
-                        <Field id="email" label="Email">
-                            <Input type="email" placeholder="Enter your email" {...register('email')} />
-                        </Field>
-                        <Field id="password" label="Password">
-                            <Input type="password" placeholder="Enter your password" {...register('password')} />
-                        </Field>
-                        <Button disabled={isLoading} variant="solid" type="submit">
-                            {isLoading ? <Spinner /> : 'Register'}
-                        </Button>
-                        <Button variant="plain" onClick={isLoading ? null : toggleComponent}>
-                            Login
-                        </Button>
-                    </Fieldset.Content>
-                </Fieldset.Root>
+                    </legend>
+                    <Field id="name" label="Name">
+                        <Input type="text" placeholder="Enter your name" />
+                    </Field>
+                    <Field id="email" label="Email">
+                        <Input type="email" placeholder="Enter your email" {...register('email')} />
+                    </Field>
+                    <Field id="password" label="Password">
+                        <Input type="password" placeholder="Enter your password" {...register('password')} />
+                    </Field>
+                    <Button variant="solid" type="submit" loading={isLoading}>
+                        Register
+                    </Button>
+                    <Button variant="plain" onClick={isLoading ? undefined : toggleComponent} disabled={isLoading}>
+                        Login
+                    </Button>
+                </fieldset>
             </form>
-        </Box>
+        </div>
     );
 }

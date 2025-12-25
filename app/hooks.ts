@@ -27,9 +27,9 @@ export function useApp(league_id: string) {
     const app = useAppSelector((state) => state.app);
     const dispatch = useAppDispatch();
     const { user } = useUser();
-    const { member } = useMember(parseInt(league_id), user);
-    const { team, load: refreshTeam } = useTeam(parseInt(league_id as string), member?.id);
-    const { rounds } = useRounds(parseInt(league_id as string));
+    const { member } = useMember(league_id, user);
+    const { team, load: refreshTeam } = useTeam(league_id, member?.id);
+    const { rounds } = useRounds(league_id);
     const { league } = useLeague(league_id);
     const { pools } = usePools(app.league?.id);
 
@@ -81,7 +81,7 @@ export function useLeague(league_id: string) {
     const { leagues } = useLeagues();
     const league = useMemo(() => {
         if (leagues && league_id) {
-            return leagues.find((l) => l.id === parseInt(league_id));
+            return leagues.find((l) => l.id === league_id);
         }
         return null;
     }, [leagues, league_id]);

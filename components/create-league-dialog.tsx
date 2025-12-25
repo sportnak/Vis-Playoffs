@@ -1,17 +1,5 @@
 'use client';
 
-import { Button, Input, Stack, Text } from '@chakra-ui/react';
-import {
-    DialogRoot,
-    DialogActionTrigger,
-    DialogBody,
-    DialogCloseTrigger,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger
-} from './ui/dialog';
 import { Field } from './ui/field';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { createLeague } from '@/actions/league';
@@ -19,6 +7,17 @@ import { toaster } from '@/components/ui/toaster';
 import { useRouter } from 'next/navigation';
 import { useLeagues } from '@/app/hooks';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+    DialogTrigger,
+    DialogClose
+} from '@/components/ui/dialog';
 
 interface CreateLeagueForm {
     name: string;
@@ -88,14 +87,9 @@ export default function CreateLeagueDialog() {
     };
 
     return (
-        <DialogRoot
-            open={open}
-            onOpenChange={(e) => setOpen(e.open)}
-            size="md"
-            placement="center"
-        >
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="solid" colorScheme="blue">
+                <Button variant="solid">
                     Create New League
                 </Button>
             </DialogTrigger>
@@ -104,96 +98,95 @@ export default function CreateLeagueDialog() {
                     <DialogHeader>
                         <DialogTitle>Create New League</DialogTitle>
                     </DialogHeader>
-                    <DialogBody>
-                        <Stack gap={4}>
-                            {/* League Name Field */}
-                            <Field
-                                label="League Name"
-                                required
-                                errorText={errors.name?.message}
-                            >
-                                <Input
-                                    placeholder="Enter league name"
-                                    {...control.register('name', {
-                                        required: 'League name is required',
-                                        minLength: {
-                                            value: 3,
-                                            message: 'League name must be at least 3 characters'
-                                        },
-                                        maxLength: {
-                                            value: 100,
-                                            message: 'League name must be less than 100 characters'
-                                        }
-                                    })}
-                                />
-                            </Field>
+                    <div className="space-y-4 py-4">
+                        {/* League Name Field */}
+                        <Field
+                            label="League Name"
+                            required
+                            errorText={errors.name?.message}
+                        >
+                            <Input
+                                placeholder="Enter league name"
+                                {...control.register('name', {
+                                    required: 'League name is required',
+                                    minLength: {
+                                        value: 3,
+                                        message: 'League name must be at least 3 characters'
+                                    },
+                                    maxLength: {
+                                        value: 100,
+                                        message: 'League name must be less than 100 characters'
+                                    }
+                                })}
+                            />
+                        </Field>
 
-                            {/* Description Field */}
-                            <Field
-                                label="Description"
-                                optionalText="(Optional)"
-                                helperText="Add a description for your league"
-                            >
-                                <Input
-                                    placeholder="Enter league description (optional)"
-                                    {...control.register('description', {
-                                        maxLength: {
-                                            value: 500,
-                                            message: 'Description must be less than 500 characters'
-                                        }
-                                    })}
-                                />
-                            </Field>
+                        {/* Description Field */}
+                        <Field
+                            label="Description"
+                            optionalText="(Optional)"
+                            helperText="Add a description for your league"
+                        >
+                            <Input
+                                placeholder="Enter league description (optional)"
+                                {...control.register('description', {
+                                    maxLength: {
+                                        value: 500,
+                                        message: 'Description must be less than 500 characters'
+                                    }
+                                })}
+                            />
+                        </Field>
 
-                            {/* Member Emails Field */}
-                            <Field
-                                label="Invite Members"
-                                optionalText="(Optional)"
-                                helperText="Add member emails to invite them to your league"
-                            >
-                                <Stack gap={2}>
-                                    {fields.map((field, index) => (
-                                        <Stack key={field.id} direction="row" gap={2}>
-                                            <Input
-                                                type="email"
-                                                placeholder="member@example.com"
-                                                {...control.register(`members.${index}.email`, {
-                                                    pattern: {
-                                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                                        message: 'Invalid email address'
-                                                    }
-                                                })}
-                                            />
-                                            {fields.length > 1 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    colorScheme="red"
-                                                    onClick={() => remove(index)}
-                                                >
-                                                    Remove
-                                                </Button>
-                                            )}
-                                        </Stack>
-                                    ))}
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => append({ email: '' })}
-                                    >
-                                        Add Another Member
-                                    </Button>
-                                </Stack>
-                            </Field>
-                        </Stack>
-                    </DialogBody>
+                        {/* Member Emails Field */}
+                        <Field
+                            label="Invite Members"
+                            optionalText="(Optional)"
+                            helperText="Add member emails to invite them to your league"
+                        >
+                            <div className="space-y-2">
+                                {fields.map((field, index) => (
+                                    <div key={field.id} className="flex gap-2">
+                                        <Input
+                                            type="email"
+                                            placeholder="member@example.com"
+                                            className="flex-1"
+                                            {...control.register(`members.${index}.email`, {
+                                                pattern: {
+                                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                                    message: 'Invalid email address'
+                                                }
+                                            })}
+                                        />
+                                        {fields.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                onClick={() => remove(index)}
+                                            >
+                                                Remove
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => append({ email: '' })}
+                                    className="w-full"
+                                >
+                                    Add Another Member
+                                </Button>
+                            </div>
+                        </Field>
+                    </div>
                     <DialogFooter>
-                        <DialogActionTrigger asChild>
+                        <DialogClose asChild>
                             <Button variant="outline" disabled={isSubmitting}>
                                 Cancel
                             </Button>
-                        </DialogActionTrigger>
+                        </DialogClose>
                         <Button
                             type="submit"
                             loading={isSubmitting}
@@ -202,9 +195,8 @@ export default function CreateLeagueDialog() {
                             Create League
                         </Button>
                     </DialogFooter>
-                    <DialogCloseTrigger />
                 </form>
             </DialogContent>
-        </DialogRoot>
+        </Dialog>
     );
 }

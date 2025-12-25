@@ -1,33 +1,36 @@
-import { Field as ChakraField } from "@chakra-ui/react"
 import * as React from "react"
+import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 
-export interface FieldProps extends Omit<ChakraField.RootProps, "label"> {
+export interface FieldProps {
+  id?: string
   label?: React.ReactNode
+  error?: string
+  errorText?: string
   helperText?: React.ReactNode
-  errorText?: React.ReactNode
+  required?: boolean
   optionalText?: React.ReactNode
+  children: React.ReactNode
+  className?: string
 }
 
 export const Field = React.forwardRef<HTMLDivElement, FieldProps>(
-  function Field(props, ref) {
-    const { label, children, helperText, errorText, optionalText, ...rest } =
-      props
+  ({ id, label, error, errorText, helperText, required, optionalText, children, className }, ref) => {
+    const errorMessage = error || errorText
     return (
-      <ChakraField.Root ref={ref} {...rest}>
+      <div ref={ref} className={cn("space-y-2", className)}>
         {label && (
-          <ChakraField.Label>
+          <Label htmlFor={id} className="text-frost">
             {label}
-            <ChakraField.RequiredIndicator fallback={optionalText} />
-          </ChakraField.Label>
+            {required && <span className="text-semantic-danger ml-1">*</span>}
+            {!required && optionalText && <span className="text-cool-gray ml-1 text-xs">({optionalText})</span>}
+          </Label>
         )}
         {children}
-        {helperText && (
-          <ChakraField.HelperText>{helperText}</ChakraField.HelperText>
-        )}
-        {errorText && (
-          <ChakraField.ErrorText>{errorText}</ChakraField.ErrorText>
-        )}
-      </ChakraField.Root>
+        {errorMessage && <p className="text-sm text-semantic-danger">{errorMessage}</p>}
+        {helperText && !errorMessage && <p className="text-sm text-cool-gray">{helperText}</p>}
+      </div>
     )
-  },
+  }
 )
+Field.displayName = "Field"

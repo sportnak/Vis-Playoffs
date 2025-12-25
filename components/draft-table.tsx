@@ -1,31 +1,5 @@
 import { useAppSelector, useLeagues, useUser } from '@/app/hooks';
-import { useDraft, useMember, useNFLPlayers, usePool } from '@/app/leagues/[league_id]/draft/hooks';
-import {
-    DialogRootProvider,
-    Flex,
-    Table,
-    Button,
-    Heading,
-    HStack,
-    Input,
-    Center,
-    Box,
-    useDialog,
-    createListCollection,
-    Icon,
-    Spinner
-} from '@chakra-ui/react';
-import {
-    DialogRoot,
-    DialogTrigger,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogBody,
-    DialogFooter,
-    DialogActionTrigger,
-    DialogCloseTrigger
-} from '@/components/ui/dialog';
+import { useNFLPlayers, } from '@/app/leagues/[league_id]/draft/hooks';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toaster } from './ui/toaster';
@@ -33,23 +7,24 @@ import { useTeams } from '@/app/leagues/[league_id]/manage/hooks';
 import { Checkbox } from './ui/checkbox';
 import { mapPos } from '@/app/util';
 import { Member, Team } from '@/app/types';
-import { SelectContent, SelectItem, SelectLabel, SelectRoot, SelectTrigger, SelectValueText } from './ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { LuPencil } from 'react-icons/lu';
-import { InputGroup } from './ui/input-group';
 import { MdOutlineSearch } from 'react-icons/md';
-import { Tooltip } from './ui/tooltip';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from './ui/dialog';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
+import { H2, P } from './ui/text';
 
-const positions = createListCollection({
-    items: [
-        { value: '', label: 'ALL' },
-        { value: 'QB', label: 'QB' },
-        { value: 'RB', label: 'RB' },
-        { value: 'WR', label: 'WR' },
-        { value: 'TE', label: 'TE' },
-        { value: 'FLEX', label: 'FLEX' },
-        { value: 'SF', label: 'SF' }
-    ]
-});
+const positions = [
+    { value: 'ALL', label: 'ALL' },
+    { value: 'QB', label: 'QB' },
+    { value: 'RB', label: 'RB' },
+    { value: 'WR', label: 'WR' },
+    { value: 'TE', label: 'TE' },
+    { value: 'FLEX', label: 'FLEX' },
+    { value: 'SF', label: 'SF' }
+];
 
 export default function Draft({ pool, team, teams, member, draftPlayer, refreshDraft }) {
     const { round_id } = useAppSelector((state) => state.app);
@@ -68,14 +43,15 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
         setQuery((x) => ({ ...x, name: e.target.value }));
     }, []);
 
-    const handlePosChange = useCallback((e) => {
+    const handlePosChange = useCallback((value: string) => {
         setQuery((x) => ({
             ...x,
-            pos: e.value[0]
+            pos: value
         }));
     }, []);
 
     const { nflPlayers, load } = useNFLPlayers(query, pool?.id, pool?.league_id);
+
     useEffect(() => {
         setQuery((x) => ({ ...x, round_id: round_id.toString() }));
     }, [round_id]);
@@ -89,6 +65,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
         }
         setCurrTurn(teams.find((x) => x.id === pool.current));
     }, [pool, teams]);
+
     const handleDraftPlayer = useCallback(
         async (player_id: number, team_id: number) => {
             const response = await draftPlayer(player_id, team_id);
@@ -108,179 +85,136 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
         },
         [draftPlayer, nflPlayers, refreshDraft, load]
     );
-    const dialog = useDialog();
-
+    const [dialogOpen, setDialogOpen] = useState(false);
     return (
-        <Box position="relative">
-            <DialogRootProvider value={dialog} placement={'center'}>
+        <div className="relative">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Are you sure you want to draft {playerConfirmation?.name}</DialogTitle>
                     </DialogHeader>
-                    <DialogBody>
-                        <p>Confirming this action will officially draft this player</p>
-                    </DialogBody>
+                    <div className="py-4">
+                        <p className="text-frost">Confirming this action will officially draft this player</p>
+                    </div>
                     <DialogFooter>
-                        <DialogActionTrigger asChild>
+                        <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
-                        </DialogActionTrigger>
-                        <DialogActionTrigger asChild>
-                            <Button onClick={() => handleDraftPlayer(playerConfirmation?.id, pool?.current)}>
-                                Save
-                            </Button>
-                        </DialogActionTrigger>
+                        </DialogClose>
+                        <Button onClick={() => {
+                            handleDraftPlayer(playerConfirmation?.id, pool?.current);
+                            setDialogOpen(false);
+                        }}>
+                            Save
+                        </Button>
                     </DialogFooter>
-                    <DialogCloseTrigger />
                 </DialogContent>
-            </DialogRootProvider>
-            <Flex direction={'column'}>
-                <Flex
-                    flexDir={'row'}
-                    base={{ flexDir: 'column', alignItems: 'flex-start' }}
-                    sm={{ flexDir: 'column', alignItems: 'flex-start' }}
-                    alignItems={'center'}
-                    mb={5}
-                    maxW="100%"
-                    justifyContent="space-between"
-                >
-                    <Heading as="h2" fontWeight={100}>
+            </Dialog>
+            <div className="flex flex-col">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 max-w-full gap-4">
+                    <H2 className="font-light">
                         Players
-                    </Heading>
-                    <HStack flexWrap={'wrap'}>
-                        <SelectRoot
-                            style={{ borderColor: 'gray', width: '150px', cursor: 'pointer' }}
-                            collection={positions}
-                            value={[query.pos]}
-                            onValueChange={handlePosChange}
-                            variant="subtle"
-                        >
-                            <SelectTrigger style={{ borderColor: 'gray' }}>
-                                <SelectValueText placeholder="POS..." />
+                    </H2>
+                    <div className="flex flex-wrap gap-3 items-center">
+                        <Select value={query.pos} onValueChange={handlePosChange}>
+                            <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="POS..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {positions?.items.map((team: any) => (
-                                    <SelectItem cursor="pointer" item={team} key={team.value}>
-                                        {team.label}
+                                {positions.map((pos) => (
+                                    <SelectItem key={pos.value} value={pos.value}>
+                                        {pos.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
-                        </SelectRoot>
-                        <Checkbox
-                            variant="subtle"
-                            cursor="pointer"
-                            mr="10px"
-                            checked={query.drafted}
-                            onChange={handleChangeDrafted}
-                        >
-                            Drafted
-                        </Checkbox>
-                        <InputGroup
-                            endElement={
-                                <Icon fontSize="20px">
-                                    <MdOutlineSearch />
-                                </Icon>
-                            }
-                        >
+                        </Select>
+                        <label className="flex items-center gap-2 cursor-pointer mr-2">
+                            <Checkbox
+                                checked={query.drafted}
+                                onCheckedChange={handleChangeDrafted}
+                            />
+                            <span className="text-frost text-sm">Drafted</span>
+                        </label>
+                        <div className="relative w-[300px]">
                             <Input
-                                w="300px"
-                                variant="subtle"
                                 placeholder="Search..."
                                 value={query.name}
                                 onChange={handleNameChange}
-                                style={{ background: 'rgba(169, 169, 169, 0.1)', fontSize: '14px' }}
+                                className="pr-10"
                             />
-                        </InputGroup>
-                    </HStack>
-                </Flex>
+                            <MdOutlineSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-cool-gray pointer-events-none" />
+                        </div>
+                    </div>
+                </div>
                 {pool && currTurn && (
-                    <Center w="100%" p={4} boxShadow="sm" border="none" borderRadius="6px" bg="#e7f9e7" mb={5}>
-                        <Heading size={'md'} as="h5" fontWeight={300}>
+                    <div className="w-full p-4 shadow-sm rounded-md bg-[#e7f9e7] mb-5 flex justify-center">
+                        <P className="font-light text-center">
                             {pool.status === 'complete'
                                 ? 'Drafting complete!'
                                 : pool.current === team?.id
-                                  ? "It's your turn to pick!"
-                                  : `Waiting on ${currTurn?.name}`}
-                        </Heading>
-                    </Center>
+                                    ? "It's your turn to pick!"
+                                    : `Waiting on ${currTurn?.name}`}
+                        </P>
+                    </div>
                 )}
 
                 {!nflPlayers ? (
-                    <Center>
-                        <Spinner size="lg" />
-                    </Center>
+                    <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan"></div>
+                    </div>
                 ) : !nflPlayers.length ? (
-                    <Center>
-                        <Heading size={'md'} as="h5" fontWeight={300}>
+                    <div className="flex justify-center">
+                        <P className="font-light">
                             No players drafted yet.
-                        </Heading>
-                    </Center>
+                        </P>
+                    </div>
                 ) : (
-                    <Box width="100%" maxH="100vh" overflow={'scroll'}>
-                        <Table.Root
-                            borderRadius="12px"
-                            background={'none'}
-                            style={{ position: 'sticky', top: 0, background: 'white', zIndex: 2 }}
-                        >
-                            <Table.Header>
-                                <Table.Row background={'none'}>
-                                    <Table.ColumnHeader>Pick No.</Table.ColumnHeader>
-                                    <Table.ColumnHeader>Team</Table.ColumnHeader>
-                                    <Table.ColumnHeader>Name</Table.ColumnHeader>
-                                    <Table.ColumnHeader>Team</Table.ColumnHeader>
-                                    <Table.ColumnHeader>Pos</Table.ColumnHeader>
-                                    <Table.ColumnHeader></Table.ColumnHeader>
-                                </Table.Row>
-                            </Table.Header>
-                            <Table.Body>
+                    <div className="w-full max-h-screen overflow-auto rounded-xl">
+                        <Table className="bg-transparent">
+                            <TableHeader className="sticky top-0 bg-steel z-[2]">
+                                <TableRow className="bg-transparent border-b border-ui-border">
+                                    <TableHead>Pick No.</TableHead>
+                                    <TableHead>Team</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Team</TableHead>
+                                    <TableHead>Pos</TableHead>
+                                    <TableHead></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {nflPlayers?.map((player) => {
                                     return (
-                                        <Table.Row background={'none'} key={player.id}>
-                                            <Table.Cell>{player.team_players?.[0]?.pick_number}</Table.Cell>
-                                            <Table.Cell>{player.team_players?.[0]?.team.name}</Table.Cell>
-                                            <Table.Cell>{player.name}</Table.Cell>
-                                            <Table.Cell>{player.nfl_team.name}</Table.Cell>
-                                            <Table.Cell>{mapPos(player)}</Table.Cell>
-                                            <Table.Cell>
+                                        <TableRow className="bg-transparent" key={player.id}>
+                                            <TableCell>{player.team_players?.[0]?.pick_number}</TableCell>
+                                            <TableCell>{player.team_players?.[0]?.team.name}</TableCell>
+                                            <TableCell>{player.name}</TableCell>
+                                            <TableCell>{player.nfl_team.name}</TableCell>
+                                            <TableCell>{mapPos(player)}</TableCell>
+                                            <TableCell>
                                                 {player.team_players.filter((x) => x.pool_id === pool?.id)?.length !==
-                                                0 ? (
-                                                    'Drafted'
+                                                    0 ? (
+                                                    <span className="text-cool-gray">Drafted</span>
                                                 ) : (
                                                     <Button
-                                                        disabled={false}
-                                                        as="div"
                                                         variant="ghost"
-                                                        style={{
-                                                            background: '#3D4946',
-                                                            padding: '10px',
-                                                            borderRadius: '8px',
-                                                            height: '30px',
-                                                            width: '75px',
-                                                            color: 'white'
-                                                        }}
-                                                        _hover={{
-                                                            background: '#2482A6'
-                                                        }}
+                                                        size="sm"
+                                                        className="bg-[#3D4946] hover:bg-[#2482A6] text-white h-[30px] w-[75px] rounded-lg"
                                                         onClick={() => {
-                                                            if (false) {
-                                                                return;
-                                                            }
-
                                                             setPlayerConfirmation(player);
-                                                            dialog.setOpen(true);
+                                                            setDialogOpen(true);
                                                         }}
                                                     >
                                                         Draft
                                                     </Button>
                                                 )}
-                                            </Table.Cell>
-                                        </Table.Row>
+                                            </TableCell>
+                                        </TableRow>
                                     );
                                 })}
-                            </Table.Body>
-                        </Table.Root>
-                    </Box>
+                            </TableBody>
+                        </Table>
+                    </div>
                 )}
-            </Flex>
-        </Box>
+            </div>
+        </div>
     );
 }

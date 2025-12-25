@@ -1,7 +1,8 @@
 import { usePoints } from '@/app/leagues/[league_id]/hooks';
 import { Team } from '@/app/types';
 import { mapPos } from '@/app/util';
-import { Box, Table, Button, Text, Heading, HStack, VStack, Center } from '@chakra-ui/react';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { useParams } from 'next/navigation';
 import { TeamCard } from './teams';
 import { useAppSelector, useUser } from '@/app/hooks';
@@ -11,9 +12,8 @@ import { mapRound } from '@/utils';
 import { useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRef } from 'react';
-import { DialogContent, DialogRoot, DialogTrigger } from './ui/dialog';
 import { useState } from 'react';
-import { Select } from './select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 export function Scoreboard({ league_id }) {
     const app = useAppSelector((state) => state.app);
@@ -22,7 +22,7 @@ export function Scoreboard({ league_id }) {
         return rounds?.find((round) => round.id === round_id);
     }, [rounds, round_id]);
 
-    const { teams: teamSeason, refresh: refreshTeam } = usePoints(parseInt(league_id as string));
+    const { teams: teamSeason, refresh: refreshTeam } = usePoints(league_id as string);
 
     useEffect(() => {
         const handleInserts = (payload) => {
@@ -50,45 +50,47 @@ export function Scoreboard({ league_id }) {
         return currentRound?.pools?.find((pool) => pool.status !== 'complete') != null;
     }, [currentRound]);
 
-    const [selectedPool, setSelectedPool] = useState({ label: 'All', value: null });
+    const [selectedPool, setSelectedPool] = useState<string>('all');
 
     return (
-        <Box>
-            <VStack ml="12px" alignItems={'flex-start'} mb="30px">
-                <Heading fontWeight={300}>Round: {mapRound(currentRound?.round)}</Heading>
-                <Button onClick={() => setShowSummary(!showSummary)} mr="20px" variant="subtle" height="30px">
+        <div>
+            <div className="flex flex-col items-start ml-3 mb-8">
+                <h2 className="text-2xl font-light">Round: {mapRound(currentRound?.round)}</h2>
+                <Button onClick={() => setShowSummary(!showSummary)} variant="subtle" className="mr-5 h-8">
                     {showSummary ? 'Scores' : 'Draft Summary'}
                 </Button>
-            </VStack>
+            </div>
 
             {isDrafting ? (
-                <Center w="100%" ml="12px">
-                    <Heading fontWeight={300}>Draft is ongoing</Heading>
-                </Center>
+                <div className="flex items-center justify-center w-full ml-3">
+                    <h2 className="text-2xl font-light">Draft is ongoing</h2>
+                </div>
             ) : showSummary ? (
-                <Box>
-                    <Select
-                        value={selectedPool}
-                        items={
-                            [
-                                { label: 'All', value: null },
-                                ...currentRound?.pools.map((pool) => ({ label: pool.name, value: pool.id }))
-                            ] || []
-                        }
-                        onChange={(selected) => {
-                            setSelectedPool(selected);
-                            console.log('Selected pool:', selected);
-                        }}
-                    />
+                <div>
+                    <div className="mb-4">
+                        <Select value={selectedPool} onValueChange={setSelectedPool}>
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select pool" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All</SelectItem>
+                                {currentRound?.pools.map((pool) => (
+                                    <SelectItem key={pool.id} value={pool.id}>
+                                        {pool.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <DraftSummary
                         teams={teamSeason}
                         pools={pools}
-                        pool_id={selectedPool.value}
+                        pool_id={selectedPool === 'all' ? null : selectedPool}
                         round_id={currentRound?.id}
                     />
-                </Box>
+                </div>
             ) : (
-                <HStack justifyContent={'center'} flexWrap={'wrap'} gap={'20px'}>
+                <div className="flex justify-center flex-wrap gap-5">
                     {sortedTeams.map((team) => {
                         const pool = pools.find(
                             (pool) => pool.draft_order.includes(team.id) && pool.round_id === currentRound?.id
@@ -106,46 +108,41 @@ export function Scoreboard({ league_id }) {
                         const roundScore =
                             pool && team.poolScores[pool?.id] ? parseFloat(team.poolScores[pool?.id].toFixed(2)) : 0;
                         return (
-                            <Box
+                            <div
                                 key={team.id}
-                                bg={'rgba(255, 255, 255, 0.5)'}
-                                p={5}
-                                boxShadow={'sm'}
-                                borderRadius="6px"
-                                w="300px"
+                                className="bg-steel p-5 shadow-sm rounded-md w-[300px] border border-ui-border"
                             >
-                                <VStack alignItems={'flex-start'} flexWrap={'wrap'} justifyContent={'space-between'}>
-                                    <HStack>
-                                        <Heading fontSize="18px" fontWeight={100} truncate>
+                                <div className="flex flex-col items-start flex-wrap justify-between">
+                                    <div className="flex gap-2">
+                                        <h3 className="text-lg font-light truncate">
                                             {team.name}
-                                        </Heading>
-                                        <Text fontSize="12px">({team.seasonScore})</Text>
-                                    </HStack>
-                                    <Text fontSize="12px" h="12px">
+                                        </h3>
+                                        <p className="text-xs">({team.seasonScore})</p>
+                                    </div>
+                                    <p className="text-xs h-3">
                                         {Object.entries(playerCounts)
                                             .map(([key, value]) => `${key}: ${value}`)
                                             .join(', ')}
-                                    </Text>
-                                </VStack>
-                                <HStack>
-                                    <Text
-                                        fontSize="12px"
-                                        color={
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <p
+                                        className={`text-xs ${
                                             avg < -20
-                                                ? '#f94144'
+                                                ? 'text-semantic-danger'
                                                 : avg < -10
-                                                  ? '#f9844a'
+                                                  ? 'text-semantic-warning'
                                                   : avg < -5
-                                                    ? '#90be6d'
-                                                    : '#277da1'
-                                        }
+                                                    ? 'text-semantic-good'
+                                                    : 'text-cyan'
+                                        }`}
                                     >
                                         Points Back: {pointsBack}
-                                    </Text>
-                                </HStack>
-                                <Text mb={'10px'} fontSize={'10px'}>
+                                    </p>
+                                </div>
+                                <p className="mb-2 text-[10px]">
                                     Pool: {pool?.name}
-                                </Text>
+                                </p>
                                 <TeamCard
                                     showScore
                                     team={team}
@@ -153,16 +150,16 @@ export function Scoreboard({ league_id }) {
                                     pool={pool}
                                     memberId={member?.id}
                                 />
-                                <HStack fontSize="14px" mt="10px" justifyContent={'flex-end'}>
-                                    <Text>Round Score:</Text>
-                                    <Text fontWeight="bold">{roundScore}</Text>
-                                </HStack>
-                            </Box>
+                                <div className="flex text-sm mt-2 justify-end gap-2">
+                                    <p>Round Score:</p>
+                                    <p className="font-bold">{roundScore}</p>
+                                </div>
+                            </div>
                         );
                     })}
-                </HStack>
+                </div>
             )}
-        </Box>
+        </div>
     );
 }
 
@@ -282,56 +279,56 @@ function DraftSummary({ teams, pools, round_id, pool_id }) {
     }, [teams, pools, round_id, pool_id]);
 
     return (
-        <Box width="100%" maxH="100vh" overflow={'scroll'}>
-            <Table.Root width="100%">
-                <Table.Header>
-                    <Table.Row style={{ position: 'sticky', top: 0, background: 'white', zIndex: 2 }}>
-                        <Table.ColumnHeader
-                            style={{ width: '120px', position: 'sticky', left: 0, background: 'white', zIndex: 1 }}
+        <div className="w-full max-h-screen overflow-scroll">
+            <Table className="w-full">
+                <TableHeader>
+                    <TableRow style={{ position: 'sticky', top: 0, background: '#1A1E25', zIndex: 2 }}>
+                        <TableHead
+                            style={{ width: '120px', position: 'sticky', left: 0, background: '#1A1E25', zIndex: 1 }}
                         >
                             Name
-                        </Table.ColumnHeader>
-                        <Table.ColumnHeader style={{ width: '40px' }}>
+                        </TableHead>
+                        <TableHead style={{ width: '40px' }}>
                             {pool_id == null ? 'ADP' : 'Pos'}
-                        </Table.ColumnHeader>
-                        {pool_id != null && <Table.ColumnHeader style={{ width: '40px' }}>Team</Table.ColumnHeader>}
-                        {pool_id == null && <Table.ColumnHeader style={{ width: '40px' }}>Min</Table.ColumnHeader>}
-                        {pool_id == null && <Table.ColumnHeader style={{ width: '40px' }}>Max</Table.ColumnHeader>}
-                        <Table.ColumnHeader style={{ width: '40px' }}>Points</Table.ColumnHeader>
+                        </TableHead>
+                        {pool_id != null && <TableHead style={{ width: '40px' }}>Team</TableHead>}
+                        {pool_id == null && <TableHead style={{ width: '40px' }}>Min</TableHead>}
+                        {pool_id == null && <TableHead style={{ width: '40px' }}>Max</TableHead>}
+                        <TableHead style={{ width: '40px' }}>Points</TableHead>
                         {statsKeys.map((key) => (
-                            <Table.ColumnHeader key={key}>{mapStatNameShort(key)}</Table.ColumnHeader>
+                            <TableHead key={key}>{mapStatNameShort(key)}</TableHead>
                         ))}
-                    </Table.Row>
-                </Table.Header>
-                <Table.Body>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
                     {summary.map((item, index) => (
-                        <Table.Row key={index}>
-                            <Table.Cell
+                        <TableRow key={index}>
+                            <TableCell
                                 style={{
                                     fontWeight: 'bold',
                                     width: '120px',
                                     position: 'sticky',
                                     left: 0,
-                                    background: 'white',
+                                    background: '#1A1E25',
                                     zIndex: 1
                                 }}
                             >
                                 {item.name}
-                            </Table.Cell>
-                            <Table.Cell style={{ width: '40px' }}>
-                                {pool_id == null ? item.adp.toFixed(2) : parseInt(item.adp)}
-                            </Table.Cell>
-                            {pool_id != null && <Table.Cell style={{ width: '40px' }}>{item.team}</Table.Cell>}
-                            {pool_id == null && <Table.Cell style={{ width: '40px' }}>{item.min}</Table.Cell>}
-                            {pool_id == null && <Table.Cell style={{ width: '40px' }}>{item.max}</Table.Cell>}
-                            <Table.Cell style={{ width: '40px' }}>{item.points}</Table.Cell>
+                            </TableCell>
+                            <TableCell style={{ width: '40px' }}>
+                                {pool_id == null ? item.adp.toFixed(2) : Math.floor(parseFloat(item.adp))}
+                            </TableCell>
+                            {pool_id != null && <TableCell style={{ width: '40px' }}>{item.team}</TableCell>}
+                            {pool_id == null && <TableCell style={{ width: '40px' }}>{item.min}</TableCell>}
+                            {pool_id == null && <TableCell style={{ width: '40px' }}>{item.max}</TableCell>}
+                            <TableCell style={{ width: '40px' }}>{item.points}</TableCell>
                             {statsKeys.map((key) => (
-                                <Table.Cell key={key}>{item.stats?.[key] ?? 0}</Table.Cell>
+                                <TableCell key={key}>{item.stats?.[key] ?? 0}</TableCell>
                             ))}
-                        </Table.Row>
+                        </TableRow>
                     ))}
-                </Table.Body>
-            </Table.Root>
-        </Box>
+                </TableBody>
+            </Table>
+        </div>
     );
 }

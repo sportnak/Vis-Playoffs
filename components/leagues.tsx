@@ -1,9 +1,10 @@
 'use client';
 import { useLeagues } from '@/app/hooks';
-import { Box, Center, Heading, Spinner, Table, HStack } from '@chakra-ui/react';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import CreateLeagueDialog from './create-league-dialog';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
+import { H2 } from './ui/text';
 
 const LeaguesList = () => {
     const { leagues } = useLeagues();
@@ -15,41 +16,39 @@ const LeaguesList = () => {
 
     if (leagues == null) {
         return (
-            <Center maxW={'1000px'} mx={'auto'} p={5}>
-                <Spinner size="xl" />
-            </Center>
+            <div className="max-w-[1000px] mx-auto p-5 flex justify-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-cyan"></div>
+            </div>
         );
     }
 
     return (
-        <Box maxW={'1000px'} mx={'auto'} p={5}>
-            <HStack justifyContent="space-between" pb="20px">
-                <Heading as="h2" size="lg">
-                    Your Leagues
-                </Heading>
+        <div className="max-w-[1000px] mx-auto p-5">
+            <div className="flex justify-between items-center pb-5">
+                <H2>Your Leagues</H2>
                 <CreateLeagueDialog />
-            </HStack>
-            <Table.Root>
-                <Table.Header>
-                    <Table.Row>
-                        <Table.ColumnHeader>ID</Table.ColumnHeader>
-                        <Table.ColumnHeader>Name</Table.ColumnHeader>
-                    </Table.Row>
-                </Table.Header>
-                <Table.Body>
+            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Name</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
                     {leagues.map((league) => (
-                        <Table.Row
-                            style={{ cursor: 'pointer' }}
+                        <TableRow
+                            className="cursor-pointer"
                             key={league.id}
                             onClick={() => setActiveLeague(league.id)}
                         >
-                            <Table.Cell>{league.id}</Table.Cell>
-                            <Table.Cell>{league.name}</Table.Cell>
-                        </Table.Row>
+                            <TableCell>{league.id}</TableCell>
+                            <TableCell>{league.name}</TableCell>
+                        </TableRow>
                     ))}
-                </Table.Body>
-            </Table.Root>
-        </Box>
+                </TableBody>
+            </Table>
+        </div>
     );
 };
 
