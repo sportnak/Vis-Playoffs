@@ -30,9 +30,9 @@ export default function RootLayout({ children }) {
                     enableSystem={false}
                     forcedTheme="dark"
                 >
-                    <div className="flex flex-col min-h-screen px-6 pb-24">
+                    <div className="flex flex-col min-h-screen px-0 md:px-6 pb-0 md:pb-24">
                         <Providers>
-                            <div className="grow fixed z-10 h-screen w-[calc(100%-70px)] ml-12 bg-carbon overflow-auto px-10 rounded-3xl pb-24">
+                            <div className="grow fixed z-10 h-screen w-full md:w-[calc(100%-70px)] ml-0 md:ml-12 bg-carbon overflow-auto px-4 md:px-10 pt-14 md:pt-0 md:rounded-3xl pb-24">
                                 {children}
                             </div>
                             <Toaster />

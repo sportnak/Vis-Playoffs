@@ -1,63 +1,67 @@
+'use client';
 import { usePoints } from '@/app/leagues/[league_id]/hooks';
 import { Team } from '@/app/types';
 import { mapPos } from '@/app/util';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { useParams } from 'next/navigation';
 import { TeamCard } from './teams';
-import { useAppSelector, useUser } from '@/app/hooks';
-import { useDraft } from '@/app/leagues/[league_id]/draft/hooks';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { mapRound } from '@/utils';
-import { useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { useRef } from 'react';
-import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useUIStore } from '@/stores/ui-store';
+import { useLeagueStore } from '@/stores/league-store';
+import { useUserStore } from '@/stores/user-store';
 
-export function Scoreboard({ league_id }) {
-    const app = useAppSelector((state) => state.app);
-    const { round_id, league, member, rounds, pools } = app;
+export function Scoreboard({ league_id }: { league_id: string }) {
+    const round_id = useUIStore((state) => state.round_id);
+    const rounds = useLeagueStore((state) => state.rounds);
+    const pools = useLeagueStore((state) => state.pools);
+    const member = useUserStore((state) => state.member);
+
     const currentRound = useMemo(() => {
         return rounds?.find((round) => round.id === round_id);
     }, [rounds, round_id]);
 
-    const { teams: teamSeason, refresh: refreshTeam } = usePoints(league_id as string);
+    const { teams: teamSeason, refresh: refreshTeam } = usePoints(league_id, round_id);
 
+    // Real-time updates for stats changes
     useEffect(() => {
-        const handleInserts = (payload) => {
+        const handleStatsChange = () => {
             refreshTeam();
         };
 
         const client = createClient();
         const channel = client.channel('supabase_realtime');
-        // Listen to inserts
+
         channel
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stats' }, handleInserts)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stats' }, handleInserts)
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'stats' }, handleInserts)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stats' }, handleStatsChange)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stats' }, handleStatsChange)
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'stats' }, handleStatsChange)
             .subscribe();
 
         return () => {
             client.removeChannel(channel);
         };
     }, [refreshTeam]);
+
     const [showSummary, setShowSummary] = useState(false);
+    const [selectedPool, setSelectedPool] = useState<string>('all');
+
     const sortedTeams = useMemo(() => {
-        return teamSeason.sort((a, b) => b.seasonScore - a.seasonScore);
+        return [...teamSeason].sort((a, b) => b.seasonScore - a.seasonScore);
     }, [teamSeason]);
+
     const isDrafting = useMemo(() => {
         return currentRound?.pools?.find((pool) => pool.status !== 'complete') != null;
     }, [currentRound]);
 
-    const [selectedPool, setSelectedPool] = useState<string>('all');
-
     return (
         <div>
-            <div className="flex flex-col items-start ml-3 mb-8">
-                <h2 className="text-2xl font-light">Round: {mapRound(currentRound?.round)}</h2>
-                <Button onClick={() => setShowSummary(!showSummary)} variant="subtle" className="mr-5 h-8">
-                    {showSummary ? 'Scores' : 'Draft Summary'}
+            <div className="flex flex-row justify-between items-start ml-3 mb-8">
+                <h2 className="text-md font-light tracking-mono">ROUND: {mapRound(currentRound?.round)}</h2>
+                <Button onClick={() => setShowSummary(!showSummary)} variant="subtle" className="mr-5 h-8 tracking-mono">
+                    {showSummary ? 'SCORES' : 'DRAFT SUMMARY'}
                 </Button>
             </div>
 
@@ -84,15 +88,15 @@ export function Scoreboard({ league_id }) {
                     </div>
                     <DraftSummary
                         teams={teamSeason}
-                        pools={pools}
+                        pools={pools || []}
                         pool_id={selectedPool === 'all' ? null : selectedPool}
                         round_id={currentRound?.id}
                     />
                 </div>
             ) : (
-                <div className="flex justify-center flex-wrap gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                     {sortedTeams.map((team) => {
-                        const pool = pools.find(
+                        const pool = pools?.find(
                             (pool) => pool.draft_order.includes(team.id) && pool.round_id === currentRound?.id
                         );
                         const pointsBack = parseFloat((team.seasonScore - sortedTeams[0].seasonScore).toFixed(2));
@@ -110,39 +114,33 @@ export function Scoreboard({ league_id }) {
                         return (
                             <div
                                 key={team.id}
-                                className="bg-steel p-5 shadow-sm rounded-md w-[300px] border border-ui-border"
+                                className="bg-steel p-5 shadow-sm rounded-md border border-ui-border"
                             >
-                                <div className="flex flex-col items-start flex-wrap justify-between">
-                                    <div className="flex gap-2">
-                                        <h3 className="text-lg font-light truncate">
-                                            {team.name}
-                                        </h3>
-                                        <p className="text-xs">({team.seasonScore})</p>
-                                    </div>
-                                    <p className="text-xs h-3">
-                                        {Object.entries(playerCounts)
-                                            .map(([key, value]) => `${key}: ${value}`)
-                                            .join(', ')}
-                                    </p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-lg font-light truncate">
+                                        {team.name}
+                                    </h3>
+                                    <p className="text-sm font-bold">{team.seasonScore}</p>
                                 </div>
-                                <div className="flex gap-2">
+
+                                <div className="mb-4">
                                     <p
                                         className={`text-xs ${
-                                            avg < -20
-                                                ? 'text-semantic-danger'
-                                                : avg < -10
-                                                  ? 'text-semantic-warning'
-                                                  : avg < -5
-                                                    ? 'text-semantic-good'
-                                                    : 'text-cyan'
+                                            pointsBack === 0
+                                                ? 'text-cyan'
+                                                : pointsBack < -20
+                                                    ? 'text-semantic-danger'
+                                                    : pointsBack < -10
+                                                        ? 'text-semantic-warning'
+                                                        : pointsBack < -5
+                                                            ? 'text-semantic-good'
+                                                            : 'text-cyan'
                                         }`}
                                     >
-                                        Points Back: {pointsBack}
+                                        {pointsBack === 0 ? 'Leading' : `${pointsBack} back`}
                                     </p>
                                 </div>
-                                <p className="mb-2 text-[10px]">
-                                    Pool: {pool?.name}
-                                </p>
+
                                 <TeamCard
                                     showScore
                                     team={team}
@@ -150,9 +148,10 @@ export function Scoreboard({ league_id }) {
                                     pool={pool}
                                     memberId={member?.id}
                                 />
-                                <div className="flex text-sm mt-2 justify-end gap-2">
-                                    <p>Round Score:</p>
-                                    <p className="font-bold">{roundScore}</p>
+
+                                <div className="flex justify-between items-center mt-4 pt-4 border-t border-ui-border">
+                                    <p className="text-xs tracking-mono">ROUND SCORE</p>
+                                    <p className="text-sm font-bold">{roundScore}</p>
                                 </div>
                             </div>
                         );

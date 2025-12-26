@@ -33,12 +33,17 @@ export interface Stats {
     pass_td: number
 }
 
+export type PlayerPosition = 'QB' | 'RB' | 'WR' | 'TE';
+
 export interface Player {
     id: string,
-    is_te: boolean,
-    is_rb: boolean,
-    is_wr: boolean,
-    is_qb: boolean,
+    // New position field (preferred)
+    position?: PlayerPosition,
+    // Legacy boolean fields (deprecated, will be removed)
+    is_te?: boolean,
+    is_rb?: boolean,
+    is_wr?: boolean,
+    is_qb?: boolean,
     name: string,
     team_id: string
     nfl_team: NFLTeam

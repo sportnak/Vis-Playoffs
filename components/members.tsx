@@ -1,9 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { inviteMember, removeMember, resetPools } from '@/actions/league';
 import { Member } from '@/app/types';
-import {  toast } from '@/components/ui/toaster';
-import { useAppDispatch, useLeagues, useUser } from '@/app/hooks';
-import { setMembers } from '@/store/leagueSlice';
+import { toast } from '@/components/ui/toaster';
+import { useLeagues, useUser } from '@/app/hooks';
 import { useCallback, useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -19,11 +18,10 @@ import {
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
 import { P } from './ui/text';
 
-export default function MembersTable({ league_id, members }: { league_id: number; members: Member[] }) {
+export default function MembersTable({ league_id, members }: { league_id: string; members: Member[] }) {
     const { handleSubmit, control } = useForm<{ email: string }>();
     const { refresh } = useLeagues();
     const { user } = useUser();
-    const dispatch = useAppDispatch();
     const [dialogOpen, setDialogOpen] = useState(false);
 
     const onSubmit = async (data: { email: string }) => {
@@ -48,9 +46,9 @@ export default function MembersTable({ league_id, members }: { league_id: number
             }
             await resetPools(league_id);
             toast.success('Member Removed');
-            dispatch(setMembers(null));
+            refresh();
         },
-        [league_id]
+        [league_id, refresh]
     );
 
     return (

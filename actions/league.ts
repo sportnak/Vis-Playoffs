@@ -4,6 +4,7 @@ import { Member, Player, Pool, RoundSettings, Stats, Team, TeamPlayer } from '@/
 import { createClient } from '@/utils/supabase/server';
 import { User } from '@supabase/supabase-js';
 import { uniqueNamesGenerator, Config, names, adjectives, colors, animals } from 'unique-names-generator';
+import { getPlayerPosition, isFlexEligible, isSuperFlexEligible } from '@/utils/player-position';
 
 const config: Config = {
     dictionaries: [adjectives, colors, animals],
@@ -88,13 +89,28 @@ export async function createLeague({
         };
     }
 
+    // Create a member for the league admin
+    const { error: adminMemberError } = await client
+        .from('league_members')
+        .insert({
+            email: user.email,
+            league_id: league.id,
+            user_id: user.id,
+            status: 'active' as const
+        });
+
+    if (adminMemberError) {
+        console.error('Failed to create admin member:', adminMemberError);
+        // Continue even if this fails - the admin can still access the league
+    }
+
     // Add member invitations if provided
     if (member_emails && member_emails.length > 0) {
-        // Filter out empty emails and duplicates
+        // Filter out empty emails and duplicates, and exclude admin's email
         const validEmails = [...new Set(
             member_emails
                 .map(email => email.trim())
-                .filter(email => email.length > 0)
+                .filter(email => email.length > 0 && email !== user.email)
         )];
 
         if (validEmails.length > 0) {
@@ -229,6 +245,85 @@ export async function loadRounds(league_id: string) {
     return response;
 }
 
+export async function getCurrentRound() {
+    const client = await createClient();
+
+    // Get the current date and time
+    const now = new Date();
+
+    // Calculate the start of this week (last Tuesday at 00:00:00)
+    const startOfWeek = new Date(now);
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    let daysFromLastTuesday;
+    if (dayOfWeek >= 2) {
+        // If today is Tuesday or later, go back to this week's Tuesday
+        daysFromLastTuesday = dayOfWeek - 2;
+    } else {
+        // If today is Sunday or Monday, go back to last week's Tuesday
+        daysFromLastTuesday = dayOfWeek + 5; // +5 to go back to previous Tuesday
+    }
+    startOfWeek.setDate(now.getDate() - daysFromLastTuesday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    // Calculate the end of this week (next Tuesday at 23:59:59)
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7); // Add 7 days to get next Tuesday
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    // Get games that fall in this week's window
+    const { data: gamesThisWeek } = await client
+        .from('games')
+        .select('nfl_round_id, nfl_rounds(*)')
+        .gte('start_time', startOfWeek.toISOString())
+        .lt('start_time', endOfWeek.toISOString())
+        .order('start_time', { ascending: true })
+        .limit(1);
+
+    if (gamesThisWeek && gamesThisWeek.length > 0) {
+        // Return the round of the first game this week
+        return {
+            data: gamesThisWeek[0].nfl_rounds,
+            error: null
+        };
+    }
+
+    // If no games this week, find the next upcoming game
+    const { data: nextGame } = await client
+        .from('games')
+        .select('nfl_round_id, nfl_rounds(*)')
+        .gte('start_time', now.toISOString())
+        .order('start_time', { ascending: true })
+        .limit(1);
+
+    if (nextGame && nextGame.length > 0) {
+        return {
+            data: nextGame[0].nfl_rounds,
+            error: null
+        };
+    }
+
+    // If no future games, get the most recent past game
+    const { data: recentGame } = await client
+        .from('games')
+        .select('nfl_round_id, nfl_rounds(*)')
+        .lte('start_time', now.toISOString())
+        .order('start_time', { ascending: false })
+        .limit(1);
+
+    if (recentGame && recentGame.length > 0) {
+        return {
+            data: recentGame[0].nfl_rounds,
+            error: null
+        };
+    }
+
+    // If no games found at all, return null
+    return {
+        data: null,
+        error: null
+    };
+}
+
 export async function upsertSettings(data: RoundSettings) {
     const client = await createClient();
     const response = await client.from('round_settings').upsert(
@@ -298,28 +393,60 @@ export async function loadTeams({ pool_ids }: { pool_ids: string[] }) {
     return response.data;
 }
 
-export async function assignPools({ members, pools }: { members: Member[]; pools: Pool[] }) {
+export async function assignPools({
+    members,
+    pool_count,
+    league_id,
+    round_id
+}: {
+    members: Member[];
+    pool_count: number;
+    league_id: string;
+    round_id: string;
+}) {
     const client = await createClient();
+
+    // Create pools
+    const pools: Pool[] = [];
+    for (let i = 0; i < pool_count; i++) {
+        const res = await client
+            .from('pools')
+            .insert({
+                round_id,
+                league_id,
+                name: uniqueNamesGenerator(config)
+            })
+            .select();
+        if (res.data && res.data[0]) {
+            pools.push(res.data[0]);
+        }
+    }
+
     const loops = members.length / pools.length;
-    const cloned_members = JSON.parse(JSON.stringify(members));
     const pool_map: { [pool_id: string]: string[] } = {};
+
+    // Create teams using member email as name
     for (const member of members) {
-        const existing_team = await client.from('team').select('*').eq('league_id', pools[0].league_id).eq('member_id', member.id);
+        const existing_team = await client.from('team').select('*').eq('league_id', league_id).eq('member_id', member.id);
         if (existing_team.data.length) {
             continue;
         }
+        // Extract name from email (part before @) or use full email
+        const teamName = member.email.split('@')[0];
         await client
             .from('team')
             .insert({
                 member_id: member.id,
-                league_id: pools[0].league_id,
-                name: uniqueNamesGenerator(nameConfig)
+                league_id: league_id,
+                name: teamName
             })
             .select();
     }
-    const existing = await client.from('team').select('*').eq('league_id', pools[0].league_id);
 
+    const existing = await client.from('team').select('*').eq('league_id', league_id);
     const teams: Team[] = existing.data;
+
+    // Randomly assign teams to pools
     for (let i = 0; i < loops; i++) {
         for (let j = 0; j < pools.length; j++) {
             if (!teams.length) {
@@ -333,6 +460,7 @@ export async function assignPools({ members, pools }: { members: Member[]; pools
         }
     }
 
+    // Update pools with draft order
     for (const pool of pools) {
         if (!pool_map[pool.id]) {
             continue;
@@ -391,6 +519,7 @@ export async function loadNFLPlayers(
             'team_players.pool_id',
             pool_id
         );
+
     if (query.name?.length) {
         request.ilike('name', `%${query.name}%`);
     }
@@ -403,31 +532,35 @@ export async function loadNFLPlayers(
         request.not('team_players', 'is', null)
     }
 
+    // Position filtering using position enum
     if (query.pos === 'QB') {
-        request.is('is_qb', true);
+        request.eq('position', 'QB');
     }
 
     if (query.pos === 'RB') {
-        request.is('is_rb', true);
+        request.eq('position', 'RB');
     }
 
     if (query.pos === 'WR') {
-        request.is('is_wr', true);
+        request.eq('position', 'WR');
     }
 
     if (query.pos === 'TE') {
-        request.is('is_te', true);
+        request.eq('position', 'TE');
     }
 
     if (query.pos === 'FLEX') {
-        request.or('is_te.is.true, is_rb.is.true, is_wr.is.true');
+        request.in('position', ['RB', 'WR', 'TE']);
     }
 
     if (query.pos === 'SF') {
-        request.or('is_te.is.true, is_rb.is.true, is_wr.is.true, is_qb.is.true');
+        request.in('position', ['QB', 'RB', 'WR', 'TE']);
     }
 
-    request.order('pick_number', { referencedTable: 'team_players', ascending: false }).limit(50);
+    request
+        .order('pick_number', { referencedTable: 'team_players', ascending: false })
+        .order('depth_rank', { ascending: true })
+        .limit(50);
     const response = await request;
     return response;
 }
@@ -546,10 +679,13 @@ export async function draftPlayer(
 }
 
 function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPlayer[]) {
-    const team_rb_count = team.filter((x) => x.player.is_rb).length;
-    const team_te_count = team.filter((x) => x.player.is_te).length;
-    const team_wr_count = team.filter((x) => x.player.is_wr).length;
-    const team_qb_count = team.filter((x) => x.player.is_qb).length;
+    const playerPosition = getPlayerPosition(player);
+
+    // Count players by position using helper
+    const team_rb_count = team.filter((x) => getPlayerPosition(x.player) === 'RB').length;
+    const team_te_count = team.filter((x) => getPlayerPosition(x.player) === 'TE').length;
+    const team_wr_count = team.filter((x) => getPlayerPosition(x.player) === 'WR').length;
+    const team_qb_count = team.filter((x) => getPlayerPosition(x.player) === 'QB').length;
 
     const rb_spots = round_settings.rb_count - team_rb_count;
     const te_spots = round_settings.te_count - team_te_count;
@@ -557,20 +693,20 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
     const qb_spots = round_settings.qb_count - team_qb_count;
 
     /** overflow > 0 means room */
-    if (player.is_rb && rb_spots > 0) {
+    if (playerPosition === 'RB' && rb_spots > 0) {
         return true;
     }
-    if (player.is_te && te_spots > 0) {
+    if (playerPosition === 'TE' && te_spots > 0) {
         return true;
     }
-    if (player.is_wr && wr_spots > 0) {
+    if (playerPosition === 'WR' && wr_spots > 0) {
         return true;
     }
-    if (player.is_qb && qb_spots > 0) {
+    if (playerPosition === 'QB' && qb_spots > 0) {
         return true;
     }
 
-    /*** calcualte FLEX spots */
+    /*** calculate FLEX spots */
     let flex_spots = round_settings.flex_count;
     if (rb_spots < 0) {
         flex_spots = flex_spots + rb_spots;
@@ -585,7 +721,7 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
     }
 
     /** if we have flex spots the pick is valid for rb, te, wr */
-    if (flex_spots > 0 && (player.is_rb || player.is_te || player.is_wr)) {
+    if (flex_spots > 0 && isFlexEligible(player)) {
         return true;
     }
 
@@ -616,9 +752,9 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
 
 export async function loadPoints({ league_id, round_id }: { round_id?: string; league_id: string }) {
     const client = await createClient();
-    const request = client.from('round_settings').select('*').eq('league_id', league_id);
-    request.not('round_id', 'eq', -1);
+    const request = client.from('round_settings').select('*').eq('league_id', league_id).eq('round_id', round_id);
     const round_settings = await request;
+    console.log(round_settings, league_id, round_id)
     const games = await client.from('games').select('*');
     const pools = await client.from('pools').select('*').eq('league_id', league_id);
     const pool_ids_by_round = pools.data.reduce((acc, curr) => {
@@ -679,11 +815,14 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
 
 function scorePlayer(player: TeamPlayer, stats: Stats, round_settings: RoundSettings) {
     let score = 0;
-    if (player.player.is_qb || player.player.is_wr) {
+    const position = getPlayerPosition(player.player);
+
+    // Apply position-specific PPR scoring
+    if (position === 'QB' || position === 'WR') {
         score += round_settings.wr_ppr * (stats?.rec ?? 0);
-    } else if (player.player.is_te) {
+    } else if (position === 'TE') {
         score += round_settings.te_ppr * (stats?.rec ?? 0);
-    } else if (player.player.is_rb) {
+    } else if (position === 'RB') {
         score += round_settings.rb_ppr * (stats?.rec ?? 0);
     }
 

@@ -5,14 +5,10 @@ import {
     loadNFLPlayers,
     loadNFLTeams,
     loadPool,
-    loadPools,
     loadTeam,
-    loadTeamPlayers,
-    loadTeams,
     updateName
 } from '@/actions/league';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { setMember, setPool, setTeam } from '@/store/draftSlice';
+import { useDraftStore } from '@/stores/draft-store';
 import { User } from '@supabase/supabase-js';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useRounds, useTeams } from '../manage/hooks';
@@ -42,6 +38,7 @@ export function useNFLPlayers(
 
     const load = useCallback(async () => {
         if (!pool_id) {
+            console.log('useNFLPlayers: No pool_id provided');
             return;
         }
         const response = await loadNFLPlayers(query, pool_id, league_id);
@@ -51,7 +48,7 @@ export function useNFLPlayers(
             data?.sort((a, b) => (b.team_players?.[0]?.pick_number ?? 0) - (a.team_players?.[0]?.pick_number ?? 0));
         }
         setNFLPlayers(data);
-    }, [query, pool_id]);
+    }, [query, pool_id, league_id]);
 
     const hasLoaded = useRef(false);
     const debounced = useRef<any>(null);
@@ -70,11 +67,13 @@ export function useNFLPlayers(
 }
 
 export function useDraft(league_id: string, round_id: string, member: Member) {
-    const pool = useAppSelector((state) => state.draft.pool);
-    const team = useAppSelector((state) => state.draft.team);
-    const pool_id = useMemo(() => [pool?.id], [pool]);
-    const { teams } = useTeams(pool_id);
-    const dispatch = useAppDispatch();
+    const pool = useDraftStore((state) => state.pool);
+    const team = useDraftStore((state) => state.team);
+    const setPool = useDraftStore((state) => state.setPool);
+    const setTeam = useDraftStore((state) => state.setTeam);
+
+    const pool_ids = useMemo(() => pool?.id ? [pool.id] : [], [pool]);
+    const { teams } = useTeams(pool_ids);
     const { rounds } = useRounds(league_id);
 
     const handleUpdateName = useCallback(
@@ -88,12 +87,37 @@ export function useDraft(league_id: string, round_id: string, member: Member) {
     );
 
     const load = useCallback(async () => {
-        const team = await loadTeam(league_id, member?.id);
-        dispatch(setTeam(team.data[0]));
+        console.log('[useDraft] Starting load with:', { member_id: member?.id, league_id, round_id });
+
+        if (!member?.id) {
+            console.error('[useDraft] No member ID found', member);
+            return;
+        }
+
+        const teamResponse = await loadTeam(league_id, member.id);
+        console.log('[useDraft] Team response:', teamResponse);
+
+        if (!teamResponse.data || teamResponse.data.length === 0) {
+            console.error('[useDraft] No team found for member', member.id);
+            return;
+        }
+
+        const loadedTeam = teamResponse.data[0];
+        console.log('[useDraft] Loaded team:', loadedTeam);
+        setTeam(loadedTeam);
+
         const pool_response = await loadPool(round_id, league_id);
-        const pool = pool_response.data.find((pool) => pool.draft_order.includes(team.data[0].id));
-        dispatch(setPool(pool));
-    }, [member, league_id, round_id, dispatch]);
+        console.log('[useDraft] Pool response:', pool_response);
+
+        if (!pool_response.data) {
+            console.error('[useDraft] No pools found');
+            return;
+        }
+
+        const loadedPool = pool_response.data.find((pool) => pool.draft_order.includes(loadedTeam.id));
+        console.log('[useDraft] Loaded pool:', loadedPool);
+        setPool(loadedPool);
+    }, [member, league_id, round_id, setTeam, setPool]);
 
     useEffect(() => {
         load();
@@ -101,6 +125,9 @@ export function useDraft(league_id: string, round_id: string, member: Member) {
 
     const handleDraftPlayer = useCallback(
         async (player_id: string, team_id: string) => {
+            if (!pool || !team) {
+                return null;
+            }
             const response = await draftPlayer(league_id, round_id, pool.id, team.id, player_id);
             return response;
         },

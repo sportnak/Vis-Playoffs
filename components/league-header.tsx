@@ -1,81 +1,73 @@
-import { updateName } from '@/actions/league';
+'use client';
+import { updateName, loadRounds } from '@/actions/league';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import teams from './teams';
 import { toaster } from './ui/toaster';
-import { useMember, useTeam } from '@/app/leagues/[league_id]/draft/hooks';
-import { useParams } from 'next/navigation';
-import { useApp, useAppDispatch, useAppSelector, useLeague, useUser } from '@/app/hooks';
-import { useRounds } from '@/app/leagues/[league_id]/manage/hooks';
 import { LuPencil } from 'react-icons/lu';
-import { setRoundId, setTab, setTeamName } from '@/store/appSlice';
 import { Button } from './ui/button';
 import { InputWithAddon } from './ui/input-with-addon';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-
-const roundItems = {
-    items: [
-        {
-            value: '-2',
-            label: 'Week 17'
-        },
-        {
-            value: '-1',
-            label: 'Week 18'
-        },
-        {
-            value: '2',
-            label: 'Wildcard'
-        },
-        {
-            value: '3',
-            label: 'Divisional'
-        },
-        {
-            value: '4',
-            label: 'Conference'
-        }
-    ]
-};
+import { useURLState } from '@/hooks/use-url-state';
+import { useLeagueStore } from '@/stores/league-store';
+import { useUserStore } from '@/stores/user-store';
+import { mapRound } from '@/utils';
+import { NFLRound } from '@/app/types';
 
 export function LeagueHeader() {
-    const { league_id } = useParams();
-    const { tab, user, teamName, team } = useAppSelector((state) => state.app);
-    const dispatch = useAppDispatch();
-    const { league } = useLeague(league_id as string);
-    const [selectedRoundId, setValue] = useState('4');
+    const { tab, round_id, updateURLState } = useURLState();
+    const league = useLeagueStore((state) => state.currentLeague);
+    const user = useUserStore((state) => state.user);
+    const team = useUserStore((state) => state.team);
+    const teamName = useUserStore((state) => state.teamName);
+    const setTeamName = useUserStore((state) => state.setTeamName);
+    const [rounds, setRounds] = useState<NFLRound[]>([]);
 
-    const changeTab = useCallback((tab: string) => {
-        dispatch(setTab(tab));
-    }, []);
-
-    const changeRound = useCallback((round_id: string) => {
-        dispatch(setRoundId(round_id));
-    }, []);
+    // Load rounds from database
     useEffect(() => {
-        changeRound(selectedRoundId);
-    }, [selectedRoundId]);
+        const fetchRounds = async () => {
+            if (league?.id) {
+                const { data } = await loadRounds(league.id);
+                if (data) {
+                    setRounds(data);
+                }
+            }
+        };
+        fetchRounds();
+    }, [league?.id]);
 
+    // Tab navigation
+    const changeTab = useCallback((newTab: string) => {
+        updateURLState({ tab: newTab });
+    }, [updateURLState]);
+
+    // Round selection
+    const changeRound = useCallback((newRound: string) => {
+        updateURLState({ round: newRound });
+    }, [updateURLState]);
+
+    // Team name editing with debounce
     const [localName, setLocalName] = useState(teamName);
+    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
     useEffect(() => {
         setLocalName(teamName);
     }, [teamName]);
 
-    const handleNameChange = useCallback((e) => {
+    const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setLocalName(e.target.value);
     }, []);
 
-    const db = useRef(null);
     useEffect(() => {
         if (!localName?.length || localName === team?.name) {
             return;
         }
-        if (db.current) {
-            clearTimeout(db.current);
+
+        if (debounceTimeout.current) {
+            clearTimeout(debounceTimeout.current);
         }
 
-        db.current = setTimeout(async () => {
+        debounceTimeout.current = setTimeout(async () => {
             const res = await updateName(localName, team?.id);
-            dispatch(setTeamName(localName));
+            setTeamName(localName);
             if (res && !res.error) {
                 toaster.create({
                     type: 'success',
@@ -83,8 +75,16 @@ export function LeagueHeader() {
                 });
             }
         }, 500);
-    }, [localName, updateName]);
-    const [innerWidth, setInnerWidth] = useState(window.innerWidth);
+
+        return () => {
+            if (debounceTimeout.current) {
+                clearTimeout(debounceTimeout.current);
+            }
+        };
+    }, [localName, team?.id, team?.name, setTeamName]);
+
+    // Responsive layout
+    const [innerWidth, setInnerWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
     useEffect(() => {
         const handleResize = () => setInnerWidth(window.innerWidth);
         window.addEventListener('resize', handleResize);
@@ -93,12 +93,12 @@ export function LeagueHeader() {
     const isMobile = innerWidth < 768;
 
     return (
-        <div className="flex justify-between items-center w-full py-5 flex-wrap">
+        <div className={`flex justify-between items-center w-full flex-wrap ${isMobile ? 'py-2' : 'py-5'}`}>
             {!isMobile && (
                 <div className="flex gap-2">
                     <Button
                         variant={tab === 'scoreboard' ? 'solid' : 'secondary'}
-                        className={`font-roboto-mono`}
+                        className="tracking-mono" size="sm"
                         onClick={() => changeTab('scoreboard')}
                     >
                         SCOREBOARD
@@ -106,7 +106,7 @@ export function LeagueHeader() {
                     <Button
                         onClick={() => changeTab('draft')}
                         variant={tab === 'draft' ? 'solid' : 'secondary'}
-                        className={`font-roboto-mono`}
+                        className="tracking-mono" size="sm"
                     >
                         DRAFT
                     </Button>
@@ -114,7 +114,7 @@ export function LeagueHeader() {
                         <Button
                             onClick={() => changeTab('settings')}
                             variant={tab === 'settings' ? 'solid' : 'secondary'}
-                            className={`font-roboto-mono letter-spacing-[1.6px]`}
+                            className="tracking-mono" size="sm"
                         >
                             SETTINGS
                         </Button>
@@ -123,36 +123,27 @@ export function LeagueHeader() {
                         <Button
                             onClick={() => changeTab('teams')}
                             variant={tab === 'teams' ? 'solid' : 'secondary'}
-                            className={`font-roboto-mono`}
+                            className="tracking-mono" size="sm"
                         >
                             TEAMS
                         </Button>
                     )}
                 </div>
             )}
-            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} items-start gap-2`}>
-                <div>
-                    <Select value={roundItems.items.find((x) => x.value === selectedRoundId)?.value} onValueChange={(e) => setValue(e)}>
-                        <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Select pool" />
+            <div className={`flex ${isMobile ? 'flex-col w-full' : 'flex-row'} items-start gap-2`}>
+                <div className={isMobile ? 'w-full' : ''}>
+                    <Select value={round_id} onValueChange={changeRound}>
+                        <SelectTrigger className={isMobile ? 'w-full h-8 text-xs' : 'w-[200px]'}>
+                            <SelectValue placeholder="Select round" />
                         </SelectTrigger>
                         <SelectContent>
-                            {roundItems.items.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
+                            {rounds.map((round) => (
+                                <SelectItem key={round.id} value={round.id}>
+                                    {mapRound(round.round)} {round.year}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
-                </div>
-                <div>
-                    <InputWithAddon
-                        endElement={<LuPencil className="text-xl" />}
-                        className="bg-gray-100 dark:bg-gray-800 text-sm w-[250px]"
-                        value={localName}
-                        onChange={handleNameChange}
-                        placeholder="Name"
-                    />
                 </div>
             </div>
         </div>

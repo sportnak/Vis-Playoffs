@@ -3,7 +3,7 @@
 import { Field } from './ui/field';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { createLeague } from '@/actions/league';
-import { toaster } from '@/components/ui/toaster';
+import { toast } from '@/components/ui/toaster';
 import { useRouter } from 'next/navigation';
 import { useLeagues } from '@/app/hooks';
 import { useState } from 'react';
@@ -61,17 +61,11 @@ export default function CreateLeagueDialog() {
         });
 
         if (result.error) {
-            toaster.create({
-                title: result.error.message,
-                type: 'error'
-            });
+            toast.error(result.error.message);
             return;
         }
 
-        toaster.create({
-            title: 'League created successfully',
-            type: 'success'
-        });
+        toast.success('League created successfully');
 
         // Refresh leagues list
         await refresh();
@@ -90,15 +84,15 @@ export default function CreateLeagueDialog() {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="solid">
-                    Create New League
+                    NEW LEAGUE
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="p-0">
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <DialogHeader>
-                        <DialogTitle>Create New League</DialogTitle>
+                    <DialogHeader className="border-b p-4">
+                        <DialogTitle className="font-roboto-mono text-xs tracking-[0.025rem]">CREATE NEW LEAGUE</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-6 p-4">
                         {/* League Name Field */}
                         <Field
                             label="League Name"
@@ -123,8 +117,8 @@ export default function CreateLeagueDialog() {
 
                         {/* Description Field */}
                         <Field
-                            label="Description"
-                            optionalText="(Optional)"
+                            label="DESCRIPTION"
+                            optionalText="Optional"
                             helperText="Add a description for your league"
                         >
                             <Input
@@ -141,7 +135,7 @@ export default function CreateLeagueDialog() {
                         {/* Member Emails Field */}
                         <Field
                             label="Invite Members"
-                            optionalText="(Optional)"
+                            optionalText="Optional"
                             helperText="Add member emails to invite them to your league"
                         >
                             <div className="space-y-2">
@@ -181,13 +175,14 @@ export default function CreateLeagueDialog() {
                             </div>
                         </Field>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="p-4">
                         <DialogClose asChild>
-                            <Button variant="outline" disabled={isSubmitting}>
+                            <Button size="sm" variant="outline" disabled={isSubmitting}>
                                 Cancel
                             </Button>
                         </DialogClose>
                         <Button
+                            size="sm"
                             type="submit"
                             loading={isSubmitting}
                             disabled={isSubmitting}

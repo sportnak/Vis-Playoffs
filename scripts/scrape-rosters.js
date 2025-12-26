@@ -48,11 +48,16 @@ async function scrapeTeamsPage(url) {
                 const nameParts = teamName.split(' ');
                 const city = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : teamName;
 
+                // Construct depth chart URL from roster URL
+                // Pattern: /nfl/team/depth/_/name/{abbr}/{team-slug}
+                const depthChartUrl = `/nfl/team/depth/_/name/${abbr}/${teamSlug}`;
+
                 teams.push({
                     abbr: abbr,
                     name: teamName,
                     city: city,
-                    rosterUrl: href
+                    rosterUrl: href,
+                    depthChartUrl: depthChartUrl
                 });
             });
 
@@ -119,10 +124,21 @@ async function scrapeTeamRoster(url) {
                         name = nameCell?.textContent?.trim() || '';
                     }
 
+                    // Get headshot image URL
+                    let headshotUrl = null;
+                    const headshotDiv = row.querySelector('.headshot');
+                    if (headshotDiv) {
+                        const img = headshotDiv.querySelector('img');
+                        if (img) {
+                            headshotUrl = img.getAttribute('src') || null;
+                        }
+                    }
+
                     if (name) {
                         players.push({
                             name: name,
-                            position: position
+                            position: position,
+                            headshot_url: headshotUrl
                         });
                     }
                 });
@@ -139,14 +155,89 @@ async function scrapeTeamRoster(url) {
     return players;
 }
 
+async function scrapeTeamDepthChart(url) {
+    const browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+    const depthChart = new Map(); // Map of player name -> depth rank
+    try {
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+        const depthData = await page.evaluate(() => {
+            const depthMap = {};
+            const skillPositions = ['QB', 'RB', 'FB', 'WR', 'TE'];
+
+            // Find all depth chart tables
+            const tables = Array.from(document.querySelectorAll('.Table__ScrollerWrapper'));
+            tables.forEach((table) => {
+
+                // Process each row (each row represents a position)
+                const rows = Array.from(table.querySelectorAll('tbody tr'));
+                rows.forEach((row) => {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    if (cells.length === 0) return;
+
+                    // Process remaining cells as depth levels (starting from index 1)
+                    cells.forEach((cell, index) => {
+                        const depthRank = index + 1; // 1 = starter, 2 = second string, etc.
+
+                        // Get all player names in this cell (there might be multiple)
+                        const playerLinks = Array.from(cell.querySelectorAll('a'));
+                        const textContent = cell.textContent || '';
+
+                        if (playerLinks.length > 0) {
+                            playerLinks.forEach(link => {
+                                let playerName = link.textContent?.trim() || '';
+                                if (playerName === '-') {
+                                    return;
+                                }
+
+                                // Remove status indicators like Q, IR, etc.
+                                playerName = playerName.replace(/\s+(Q|IR|O|D|PUP|SUSP)$/i, '').trim();
+
+                                if (playerName && !depthMap[playerName]) {
+                                    depthMap[playerName] = depthRank;
+                                }
+                            });
+                        } else if (textContent.trim()) {
+                            // Handle plain text player names
+                            const names = textContent.split(/[,\n]/).map(n => n.trim()).filter(n => n);
+                            names.forEach(name => {
+                                // Remove status indicators
+                                name = name.replace(/\s+(Q|IR|O|D|PUP|SUSP)$/i, '').trim();
+
+                                if (name && !depthMap[name]) {
+                                    depthMap[name] = depthRank;
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+
+            return depthMap;
+        });
+
+        Object.entries(depthData).forEach(([name, rank]) => {
+            depthChart.set(name, rank);
+        });
+    } finally {
+        await browser.close();
+    }
+
+    return depthChart;
+}
+
 function mapPosition(espnPosition) {
     const pos = espnPosition.trim().toUpperCase();
-    return {
-        is_qb: pos === 'QB',
-        is_rb: pos === 'RB' || pos === 'FB',
-        is_wr: pos === 'WR',
-        is_te: pos === 'TE'
-    };
+
+    // Map ESPN position to our position enum
+    // FB (Fullback) is treated as RB
+    if (pos === 'QB') return 'QB';
+    if (pos === 'RB' || pos === 'FB') return 'RB';
+    if (pos === 'WR') return 'WR';
+    if (pos === 'TE') return 'TE';
+
+    return null; // Invalid position for skill positions
 }
 
 async function upsertTeam(supabase, team) {
@@ -186,7 +277,15 @@ async function upsertTeam(supabase, team) {
     }
 }
 
-async function upsertPlayer(supabase, player, teamId) {
+async function upsertPlayer(supabase, player, teamId, depthRank = null) {
+    const position = mapPosition(player.position);
+
+    // Skip players with invalid positions
+    if (!position) {
+        console.log(`Skipping player ${player.name} with invalid position: ${player.position}`);
+        return;
+    }
+
     const { data: existing, error: selectError } = await supabase
         .from('player')
         .select('id')
@@ -198,7 +297,9 @@ async function upsertPlayer(supabase, player, teamId) {
         name: player.name,
         nfl_team_id: teamId,
         year: 2025,
-        ...mapPosition(player.position)
+        position: position,
+        headshot_url: player.headshot_url,
+        depth_rank: depthRank
     };
 
     if (existing) {
@@ -231,7 +332,7 @@ async function main() {
     // For local development, use the local service role key
     // Get it from: supabase status (look for service_role key)
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
     if (!supabaseKey) {
         console.error('Error: SUPABASE_SERVICE_ROLE_KEY must be set in .env.local');
@@ -266,10 +367,18 @@ async function main() {
                 const players = await scrapeTeamRoster(`https://www.espn.com${team.rosterUrl}`);
                 console.log(`Found ${players.length} skill position players for ${team.name}`);
 
-                // Upsert each player
+                // Add delay to avoid rate limiting
+                await delay(1500);
+
+                // Scrape depth chart
+                const depthChart = await scrapeTeamDepthChart(`https://www.espn.com${team.depthChartUrl}`);
+                console.log(`Found depth chart data for ${depthChart.size} players`);
+
+                // Upsert each player with depth rank
                 for (const player of players) {
                     try {
-                        await upsertPlayer(supabase, player, teamId);
+                        const depthRank = depthChart.get(player.name) || null;
+                        await upsertPlayer(supabase, player, teamId, depthRank);
                     } catch (error) {
                         console.error(`Failed to upsert player ${player.name}: ${error.message}`);
                     }

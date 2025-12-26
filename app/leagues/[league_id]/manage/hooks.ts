@@ -1,86 +1,80 @@
-import { loadMembers, loadPools, loadRounds, loadTeams } from "@/actions/league";
-import { useAppSelector, useAppDispatch } from "@/app/hooks";
-import { Team, TeamPlayer } from "@/app/types";
-import { setRounds } from "@/store/appSlice";
-import { setMembers, } from "@/store/leagueSlice";
-import { useCallback, useEffect, useState } from "react";
+'use client';
+import { loadMembers, loadPools, loadRounds, loadTeams } from '@/actions/league';
+import { Team } from '@/app/types';
+import { useLeagueStore } from '@/stores/league-store';
+import { useCallback, useEffect, useState } from 'react';
 
 export function useMembers(league_id: string) {
-    const members = useAppSelector((state) => state.league.members);
-    const dispatch = useAppDispatch();
-    const load = useCallback(async() => {
+    const [members, setMembers] = useState(null);
+
+    const load = useCallback(async () => {
         const response = await loadMembers({ league_id });
-        dispatch(setMembers(response.data));
-    }, [league_id])
+        setMembers(response.data);
+    }, [league_id]);
 
     useEffect(() => {
         if (members != null || league_id == null) {
             return;
         }
         load();
-    }, [members, league_id]);
+    }, [members, league_id, load]);
 
-  return { members, load}
+    return { members, load };
 }
 
 export function useRounds(league_id: string) {
-    const rounds = useAppSelector((state) => state.app.rounds);
-    const dispatch = useAppDispatch();
+    const rounds = useLeagueStore((state) => state.rounds);
 
     const load = useCallback(async () => {
         const response = await loadRounds(league_id);
-        console.log(response.data)
-        dispatch(setRounds(response.data));
-    }, [league_id])
+        useLeagueStore.getState().setRounds(response.data);
+    }, [league_id]);
 
     useEffect(() => {
         if (rounds?.length || league_id == null) {
             return;
         }
-
         load();
-    }, [load]);
+    }, [rounds?.length, league_id, load]);
 
-  return { rounds, refresh: load }
-
+    return { rounds, refresh: load };
 }
 
 export function usePools(league_id: string, round_id?: string) {
-    const [pools, setPools] = useState([])
+    const [pools, setPools] = useState([]);
 
-    const load = useCallback(async() => {
+    const load = useCallback(async () => {
         const response = await loadPools({ league_id, round_id });
         setPools(response.data);
-    }, [league_id, round_id ])
+    }, [league_id, round_id]);
 
     useEffect(() => {
         if (league_id == null) {
             return;
         }
-
         load();
-    }, [league_id, round_id]);
+    }, [league_id, round_id, load]);
 
-  return { pools, load }
+    return { pools, load };
 }
 
 export function useTeams(pool_ids: string[]) {
-    const [teams, setTeams] = useState<Team[]>([])
+    const [teams, setTeams] = useState<Team[]>([]);
 
-    const load = useCallback(async() => {
-        if (!pool_ids?.filter(x => x).length) {
-            return
+    const load = useCallback(async () => {
+        if (!pool_ids?.filter((x) => x).length) {
+            return;
         }
         const response = await loadTeams({ pool_ids });
         setTeams(response);
-    }, [pool_ids, ])
+    }, [pool_ids]);
 
     useEffect(() => {
         if (pool_ids == null) {
             return;
         }
         load();
-    }, [pool_ids]);
+    }, [pool_ids, load]);
 
-  return { teams, load }
+    return { teams, load };
 }

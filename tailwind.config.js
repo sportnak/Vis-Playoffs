@@ -77,8 +77,19 @@ module.exports = {
       },
       letterSpacing: {
         'button': '1.6px',
+        'mono': '0.025rem',
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    function({ addUtilities }) {
+      addUtilities({
+        '.tracking-mono': {
+          'font-family': '"Roboto Mono", monospace',
+          'letter-spacing': '0.025rem',
+        },
+      });
+    },
+  ],
 };

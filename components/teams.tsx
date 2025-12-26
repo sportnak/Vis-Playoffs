@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tooltip } from './ui/tooltip';
 import { Button } from './ui/button';
 import { H3, P } from './ui/text';
+import { getPlayerPosition, isPlayerPosition, isFlexEligible, isSuperFlexEligible } from '@/utils/player-position';
 
 export default function Teams({
     teams,
@@ -36,13 +37,13 @@ export default function Teams({
     }
 
     return (
-        <div className="p-5 bg-white/50 shadow-md rounded-md h-full">
-            <H3 className="font-light pb-2">
-                Team
-            </H3>
-            <div className="pb-2 w-full">
+        <div className="bg-steel border border-ui-border shadow-md rounded-md h-full">
+            <div className="px-4 py-2 w-full gap-4 items-center flex flex-row border-b border-ui-border">
+                <P className="font-light font-roboto-mono text-sm tracking-[0.025rem]">
+                    TEAM
+                </P>
                 <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-7">
                         <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent>
@@ -54,18 +55,21 @@ export default function Teams({
                     </SelectContent>
                 </Select>
             </div>
-            <TeamCard showScore={false} team={team} round={round} pool={pool} memberId={memberId} />
+            <div className="p-4">
+
+                <TeamCard showScore={false} team={team} round={round} pool={pool} memberId={memberId} />
+            </div>
         </div>
     );
 }
 
 export function TeamCard({ team, round, pool, memberId, showScore }) {
-    const qbCount = useMemo(() => round?.round_settings[0]?.qb_count, [round]);
-    const wrCount = useMemo(() => round?.round_settings[0]?.wr_count, [round]);
-    const rbCount = useMemo(() => round?.round_settings[0]?.rb_count, [round]);
-    const teCount = useMemo(() => round?.round_settings[0]?.te_count, [round]);
-    const flexCount = useMemo(() => round?.round_settings[0]?.flex_count, [round]);
-    const sfCount = useMemo(() => round?.round_settings[0]?.sf_count, [round]);
+    const qbCount = useMemo(() => round?.round_settings[0]?.qb_count ?? 0, [round]);
+    const wrCount = useMemo(() => round?.round_settings[0]?.wr_count ?? 0, [round]);
+    const rbCount = useMemo(() => round?.round_settings[0]?.rb_count ?? 0, [round]);
+    const teCount = useMemo(() => round?.round_settings[0]?.te_count ?? 0, [round]);
+    const flexCount = useMemo(() => round?.round_settings[0]?.flex_count ?? 0, [round]);
+    const sfCount = useMemo(() => round?.round_settings[0]?.sf_count ?? 0, [round]);
     const showDrop = false; //team?.member_id === memberId && pool?.status === 'complete';
 
     const handleDropPlayer = useCallback((player_id: number) => {
@@ -85,6 +89,11 @@ export function TeamCard({ team, round, pool, memberId, showScore }) {
             pool?.id
         );
     }, [qbCount, pool?.id, wrCount, rbCount, teCount, flexCount, team, sfCount]);
+
+    if (qbCount === 0 && wrCount === 0 && rbCount === 0 && teCount === 0 && flexCount === 0 && sfCount === 0) {
+        return <div className="p-4 w-full flex flex-row justify-center"><P className="font-roboto-mono text-xs tracking-[0.025rem]">NO PLAYERS DRAFTED</P></div>
+    }
+
     return (
         round?.round_settings && (
             <div className="w-full space-y-2">
@@ -182,10 +191,7 @@ function PlayerItem({
             >
                 <div className="flex items-center gap-2">
                     <div
-                        className="h-10 w-10 rounded-full flex items-center justify-center text-xs"
-                        style={{
-                            background: 'linear-gradient(169deg, rgba(214,238,251,1) 0%, rgba(224,239,236,1) 40%, rgba(229,239,231,1) 100%)'
-                        }}
+                        className="tracking-mono h-10 w-10 rounded-full flex items-center justify-start text-xs"
                     >
                         {position}
                     </div>
@@ -198,26 +204,24 @@ function PlayerItem({
                         </>
                     ) : (
                         <div>
-                            <span className="text-cool-gray text-xs font-light">
-                                None Drafted
+                            <span className="tracking-mono text-cool-gray text-xs font-light">
+                                EMPTY
                             </span>
                         </div>
                     )}
                 </div>
                 {showScore && player && (
                     <span
-                        className="text-xs font-bold"
-                        style={{
-                            color: (player as any)?.stats == null
-                                ? 'black'
-                                : player.score < 5
-                                  ? '#f94144'
-                                  : player.score < 10
-                                    ? '#f9844a'
+                        className={`text-xs font-bold ${(player as any)?.stats == null
+                            ? 'text-cool-gray'
+                            : player.score < 5
+                                ? 'text-semantic-danger'
+                                : player.score < 10
+                                    ? 'text-semantic-warning'
                                     : player.score < 20
-                                      ? '#90be6d'
-                                      : '#277da1'
-                        }}
+                                        ? 'text-semantic-good'
+                                        : 'text-cyan'
+                            }`}
                     >
                         {player?.score} pts
                     </span>
@@ -259,7 +263,8 @@ export function mapStatName(stat) {
 }
 function Points({ player }: { player: TeamPlayer }) {
     const stats = (player as any)?.stats;
-    const stat_columns = player.player.is_qb ? qb_stats : player.player.is_rb ? rb_stats : wr_stats;
+    const position = getPlayerPosition(player.player);
+    const stat_columns = position === 'QB' ? qb_stats : position === 'RB' ? rb_stats : wr_stats;
     return (
         <div className="text-black p-4">
             <h4 className="text-sm mb-2 font-bold">
@@ -275,8 +280,8 @@ function Points({ player }: { player: TeamPlayer }) {
                             {stat === 'pass_att'
                                 ? `${stats['comp']}/${stats[stat]}`
                                 : stat === 'rec'
-                                  ? `${stats[stat]}/${stats['tar']}`
-                                  : (stats[stat] ?? 0)}
+                                    ? `${stats[stat]}/${stats['tar']}`
+                                    : (stats[stat] ?? 0)}
                         </span>
                     </div>
                 ))}
@@ -285,7 +290,7 @@ function Points({ player }: { player: TeamPlayer }) {
     );
 }
 
-function createTeam(team: Team, counts, poolId: number) {
+function createTeam(team: Team, counts, poolId: string) {
     const qbs = [];
     const rbs = [];
     const tes = [];
@@ -298,7 +303,9 @@ function createTeam(team: Team, counts, poolId: number) {
     }
 
     for (const player of team.team_players.filter((x) => x.pool_id === poolId)) {
-        if (player.player.is_qb) {
+        const position = getPlayerPosition(player.player);
+
+        if (position === 'QB') {
             if (qbs.length < counts.qbCount) {
                 qbs.push(player);
             } else if (sfs.length < counts.sfCount) {
@@ -306,7 +313,7 @@ function createTeam(team: Team, counts, poolId: number) {
             }
         }
 
-        if (player.player.is_rb) {
+        if (position === 'RB') {
             if (rbs.length < counts.rbCount) {
                 rbs.push(player);
             } else if (flexs.length < counts.flexCount) {
@@ -316,7 +323,7 @@ function createTeam(team: Team, counts, poolId: number) {
             }
         }
 
-        if (player.player.is_wr) {
+        if (position === 'WR') {
             if (wrs.length < counts.wrCount) {
                 wrs.push(player);
             } else if (flexs.length < counts.flexCount) {
@@ -326,7 +333,7 @@ function createTeam(team: Team, counts, poolId: number) {
             }
         }
 
-        if (player.player.is_te) {
+        if (position === 'TE') {
             if (tes.length < counts.teCount) {
                 tes.push(player);
             } else if (flexs.length < counts.flexCount) {

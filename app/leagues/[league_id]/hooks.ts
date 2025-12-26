@@ -1,9 +1,8 @@
 import { loadPoints } from '@/actions/league';
-import { createClient } from '@/utils/supabase/client';
 import { useCallback, useEffect, useState } from 'react';
 
 
-export function usePoints(league_id: number, round_id?: number) {
+export function usePoints(league_id: string, round_id: string) {
     const [teams, setTeams] = useState([]);
 
     const load = useCallback(async () => {
