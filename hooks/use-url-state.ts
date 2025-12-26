@@ -1,3 +1,5 @@
+'use client';
+
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { getCurrentRound } from '@/actions/league';
@@ -10,7 +12,7 @@ export function useURLState() {
 
   useEffect(() => {
     const fetchCurrentRound = async () => {
-      const { data } = await getCurrentRound();
+      const { data } = await getCurrentRound() as any;
       if (data?.id) {
         setDefaultRoundId(data.id);
       }

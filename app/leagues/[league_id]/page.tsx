@@ -1,6 +1,6 @@
 'use client';
 import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useURLState } from '@/hooks/use-url-state';
 import { useLeaguePageData } from '@/hooks/use-league-data';
 import { useUIStore } from '@/stores/ui-store';
@@ -18,7 +18,7 @@ import {
 } from '@/components/skeletons/league-skeleton';
 import { P } from '@/components/ui/text';
 
-export default function League() {
+function LeagueContent() {
     const { league_id } = useParams();
     const { tab, round_id, updateURLState } = useURLState();
     const { isLoading, isError, league, rounds } = useLeaguePageData(league_id as string);
@@ -62,5 +62,13 @@ export default function League() {
             {tab === 'draft' && <Draft leagueId={league.id} roundId={round_id} />}
             {tab === 'teams' && <MembersTable league_id={league.id} members={league.league_members} />}
         </div>
+    );
+}
+
+export default function League() {
+    return (
+        <Suspense fallback={<LeagueHeaderSkeleton />}>
+            <LeagueContent />
+        </Suspense>
     );
 }

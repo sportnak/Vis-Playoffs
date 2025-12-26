@@ -331,7 +331,7 @@ async function main() {
 
     // For local development, use the local service role key
     // Get it from: supabase status (look for service_role key)
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
     if (!supabaseKey) {
@@ -356,6 +356,9 @@ async function main() {
         for (const team of teams) {
             try {
                 console.log(`Processing ${team.name} (${team.abbr})...`);
+                if (team.name !== 'San Francisco 49ers') {
+                    continue
+                }
 
                 // Upsert team
                 const teamId = await upsertTeam(supabase, team);

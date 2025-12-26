@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { NFLRound, Player, Pool, RoundSettings, Stats, Team, TeamPlayer } from '@/app/types';
-import { toaster } from './ui/toaster';
-import { mapPos } from '@/app/util';
+import { NFLRound, Pool, Team, TeamPlayer } from '@/app/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Tooltip } from './ui/tooltip';
 import { Button } from './ui/button';
-import { H3, P } from './ui/text';
-import { getPlayerPosition, isPlayerPosition, isFlexEligible, isSuperFlexEligible } from '@/utils/player-position';
+import { P } from './ui/text';
+import { getPlayerPosition } from '@/utils/player-position';
 
 export default function Teams({
     teams,
@@ -16,10 +14,10 @@ export default function Teams({
     pool
 }: {
     pool: Pool;
-    memberId: number;
+    memberId: string;
     teams: Team[];
     round: NFLRound;
-    dropPlayer: (player_id: number) => void;
+    dropPlayer: (player_id: string) => void;
 }) {
     const [selectedTeamId, setSelectedTeamId] = useState<string>('');
 
@@ -170,64 +168,50 @@ function PlayerItem({
     const stats = (player as any)?.stats;
     const [open, setOpen] = useState(false);
     return (
-        <Tooltip
-            interactive
-            contentProps={{
-                css: {
-                    '--tooltip-bg': 'rgba(255, 255, 255, 1)',
-                    borderRadius: '6px'
-                }
-            }}
-            disabled={stats == null}
-            content={<Points player={player} />}
-            open={open}
-            onOpenChange={(e) => setOpen(e.open)}
+        <div
+            className="w-full flex justify-between items-center"
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+            onClick={() => setOpen((op) => !op)}
         >
-            <div
-                className="w-full flex justify-between items-center"
-                onMouseEnter={() => setOpen(true)}
-                onMouseLeave={() => setOpen(false)}
-                onClick={() => setOpen((op) => !op)}
-            >
-                <div className="flex items-center gap-2">
-                    <div
-                        className="tracking-mono h-10 w-10 rounded-full flex items-center justify-start text-xs"
-                    >
-                        {position}
-                    </div>
-                    {player ? (
-                        <>
-                            <span className="text-xs text-left text-frost">
-                                {player.player.name}
-                            </span>
-                            {dropPlayer && <Button size="sm" onClick={() => dropPlayer(player.player.id)}>X</Button>}
-                        </>
-                    ) : (
-                        <div>
-                            <span className="tracking-mono text-cool-gray text-xs font-light">
-                                EMPTY
-                            </span>
-                        </div>
-                    )}
+            <div className="flex items-center gap-2">
+                <div
+                    className="tracking-mono h-10 w-10 rounded-full flex items-center justify-start text-xs"
+                >
+                    {position}
                 </div>
-                {showScore && player && (
-                    <span
-                        className={`text-xs font-bold ${(player as any)?.stats == null
-                            ? 'text-cool-gray'
-                            : player.score < 5
-                                ? 'text-semantic-danger'
-                                : player.score < 10
-                                    ? 'text-semantic-warning'
-                                    : player.score < 20
-                                        ? 'text-semantic-good'
-                                        : 'text-cyan'
-                            }`}
-                    >
-                        {player?.score} pts
-                    </span>
+                {player ? (
+                    <>
+                        <span className="text-xs text-left text-frost">
+                            {player.player.name}
+                        </span>
+                        {dropPlayer && <Button size="sm" onClick={() => dropPlayer(player.player.id)}>X</Button>}
+                    </>
+                ) : (
+                    <div>
+                        <span className="tracking-mono text-cool-gray text-xs font-light">
+                            EMPTY
+                        </span>
+                    </div>
                 )}
             </div>
-        </Tooltip>
+            {showScore && player && (
+                <span
+                    className={`text-xs font-bold ${(player as any)?.stats == null
+                        ? 'text-cool-gray'
+                        : player.score < 5
+                            ? 'text-semantic-danger'
+                            : player.score < 10
+                                ? 'text-semantic-warning'
+                                : player.score < 20
+                                    ? 'text-semantic-good'
+                                    : 'text-cyan'
+                        }`}
+                >
+                    {player?.score} pts
+                </span>
+            )}
+        </div>
     );
 }
 const wr_stats = ['rec', 'rec_yds', 'rec_td', 'fum', 'rush_att', 'rush_yds', 'rush_td'];

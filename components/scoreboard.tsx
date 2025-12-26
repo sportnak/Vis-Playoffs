@@ -125,8 +125,7 @@ export function Scoreboard({ league_id }: { league_id: string }) {
 
                                 <div className="mb-4">
                                     <p
-                                        className={`text-xs ${
-                                            pointsBack === 0
+                                        className={`text-xs ${pointsBack === 0
                                                 ? 'text-cyan'
                                                 : pointsBack < -20
                                                     ? 'text-semantic-danger'
@@ -135,7 +134,7 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                                                         : pointsBack < -5
                                                             ? 'text-semantic-good'
                                                             : 'text-cyan'
-                                        }`}
+                                            }`}
                                     >
                                         {pointsBack === 0 ? 'Leading' : `${pointsBack} back`}
                                     </p>
@@ -162,7 +161,7 @@ export function Scoreboard({ league_id }: { league_id: string }) {
     );
 }
 
-function totalPoints(team: Team, pool_id?: number) {
+function totalPoints(team: Team, pool_id?: string) {
     const total =
         team?.team_players
             .filter((x) => !pool_id || x.pool_id === pool_id)

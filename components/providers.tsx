@@ -2,7 +2,7 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useUserStore } from '@/stores/user-store';
 import { typedClient } from '@/utils/supabase/supabase';
 import Header from '@/components/header';
@@ -22,7 +22,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Header />
+      <Suspense fallback={<div />}>
+        <Header />
+      </Suspense>
       {children}
     </QueryClientProvider>
   );

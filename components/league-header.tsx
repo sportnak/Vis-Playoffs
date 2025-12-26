@@ -1,10 +1,7 @@
 'use client';
-import { updateName, loadRounds } from '@/actions/league';
+import { loadRounds } from '@/actions/league';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { toaster } from './ui/toaster';
-import { LuPencil } from 'react-icons/lu';
 import { Button } from './ui/button';
-import { InputWithAddon } from './ui/input-with-addon';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useURLState } from '@/hooks/use-url-state';
 import { useLeagueStore } from '@/stores/league-store';
@@ -16,9 +13,6 @@ export function LeagueHeader() {
     const { tab, round_id, updateURLState } = useURLState();
     const league = useLeagueStore((state) => state.currentLeague);
     const user = useUserStore((state) => state.user);
-    const team = useUserStore((state) => state.team);
-    const teamName = useUserStore((state) => state.teamName);
-    const setTeamName = useUserStore((state) => state.setTeamName);
     const [rounds, setRounds] = useState<NFLRound[]>([]);
 
     // Load rounds from database
@@ -43,45 +37,6 @@ export function LeagueHeader() {
     const changeRound = useCallback((newRound: string) => {
         updateURLState({ round: newRound });
     }, [updateURLState]);
-
-    // Team name editing with debounce
-    const [localName, setLocalName] = useState(teamName);
-    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-
-    useEffect(() => {
-        setLocalName(teamName);
-    }, [teamName]);
-
-    const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setLocalName(e.target.value);
-    }, []);
-
-    useEffect(() => {
-        if (!localName?.length || localName === team?.name) {
-            return;
-        }
-
-        if (debounceTimeout.current) {
-            clearTimeout(debounceTimeout.current);
-        }
-
-        debounceTimeout.current = setTimeout(async () => {
-            const res = await updateName(localName, team?.id);
-            setTeamName(localName);
-            if (res && !res.error) {
-                toaster.create({
-                    type: 'success',
-                    title: 'Team name updated'
-                });
-            }
-        }, 500);
-
-        return () => {
-            if (debounceTimeout.current) {
-                clearTimeout(debounceTimeout.current);
-            }
-        };
-    }, [localName, team?.id, team?.name, setTeamName]);
 
     // Responsive layout
     const [innerWidth, setInnerWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
