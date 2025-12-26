@@ -23,20 +23,31 @@ async function scrapeSchedule(url) {
             console.log(`Found ${rows.length} table rows`);
 
             rows.forEach((row, index) => {
-                // Look for date_col which contains the game link
+                // Look for date_col which contains the game time/link for upcoming games
                 let dateCol = row.querySelector('.date__col.Table__TD');
-                if (!dateCol) {
-                    dateCol = row.querySelector('.teams__col.Table__TD')
-                };
+                let timeText = null;
+                let gameLink = null;
+                let hasStarted = false;
 
-                if (!dateCol) return;
+                if (dateCol) {
+                    // Upcoming game - get time from date__col text content
+                    gameLink = dateCol.querySelector('a[href*="/game/_/gameId/"]');
+                    if (gameLink) {
+                        timeText = gameLink.textContent?.trim() || '';
+                    }
+                } else {
+                    // Game has started/finished - look in teams__col for the result link
+                    const teamsCol = row.querySelector('.teams__col.Table__TD');
+                    if (teamsCol) {
+                        gameLink = teamsCol.querySelector('a[href*="/game/_/gameId/"]');
+                        hasStarted = true;
+                    }
+                }
 
-                // Get game link from date_col
-                const gameLink = dateCol.querySelector('a[href*="/game/_/gameId/"]');
                 if (!gameLink) {
                     console.log('no game link')
                     return;
-                };
+                }
 
                 const href = gameLink.getAttribute('href') || '';
                 const gameIdMatch = href.match(/gameId\/(\d+)/);
@@ -49,7 +60,6 @@ async function scrapeSchedule(url) {
 
                 // Get teams from away_team and home_team classes
                 const awayTeamEl = row.querySelector('.Table__Team.away');
-
                 const homeTeamEl = row.querySelector('.Table__Team:not(.away)');
                 if (!awayTeamEl || !homeTeamEl) {
                     console.log('missing teams')
@@ -65,12 +75,9 @@ async function scrapeSchedule(url) {
                     return;
                 }
 
-                // Get time from the game link text
-                let timeText = gameLink.textContent?.trim() || '';
-
                 // Try to find the date - look upward for table caption
                 let dateText = '';
-                const table = row.closest('table');
+                const table = row.closest('.ResponsiveTable');
                 if (table) {
                     const caption = table.querySelector('.Table__Title');
                     dateText = caption?.textContent?.trim() || '';
@@ -82,7 +89,8 @@ async function scrapeSchedule(url) {
                         team2: homeTeam,
                         gameId,
                         timeText,
-                        dateText
+                        dateText,
+                        hasStarted
                     });
                 }
             });
@@ -102,21 +110,28 @@ async function scrapeSchedule(url) {
 function parseGameDateTime(dateText, timeText) {
     // ESPN schedule dates are like "Thursday, December 26" or "Saturday, December 28"
     // Times are like "1:00 PM" or "4:30 PM"
+    // If timeText is null, the game has already started/finished
+
+    // If no time text, game has already started - use current time
+    if (!timeText) {
+        return new Date();
+    }
 
     const currentYear = new Date().getFullYear();
 
     // Extract month and day from dateText
-    const dateMatch = dateText.match(/(\w+),\s+(\w+)\s+(\d+)/);
+    const dateMatch = dateText.match(/(\w+),\s+(\w+)\s+(\d+)(?:,\s+(\d+))?/);
     if (!dateMatch) {
         return new Date();
     }
 
-    const [_, dayOfWeek, month, day] = dateMatch;
+    const [_, dayOfWeek, month, day, yearFromDate] = dateMatch;
+    const year = yearFromDate || currentYear;
 
     // Parse time
     const timeMatch = timeText.match(/(\d+):(\d+)\s+(AM|PM)/);
     if (!timeMatch) {
-        return new Date(`${month} ${day}, ${currentYear}`);
+        return new Date(`${month} ${day}, ${year}`);
     }
 
     const [__, hourStr, minuteStr, meridiem] = timeMatch;
@@ -130,7 +145,7 @@ function parseGameDateTime(dateText, timeText) {
     }
 
     // Create date in EST (NFL games are typically shown in ET)
-    const dateStr = `${month} ${day}, ${currentYear} ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00 GMT-0500`;
+    const dateStr = `${month} ${day}, ${year} ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00 GMT-0500`;
     return new Date(dateStr);
 }
 
@@ -194,6 +209,7 @@ async function main() {
             console.log(`Found ${games.length} games for week ${config.week} (round ${config.round})`);
 
             for (const game of games) {
+                console.log(game.dateText, game.timeText)
                 const startTime = parseGameDateTime(game.dateText, game.timeText);
 
                 // Find team IDs by name - try to match team names flexibly
@@ -230,28 +246,40 @@ async function main() {
                     .select('*')
                     .eq('link', game.gameId);
 
+                const gameData = {
+                    nfl_team_1: team1.id,
+                    nfl_team_2: team2.id,
+                    link: game.gameId,
+                    start_time: startTime.toISOString(),
+                    nfl_round_id: round.id,
+                    is_final: false
+                };
+
                 if (existingGames && existingGames.length > 0) {
-                    console.log(`Game ${game.gameId} already exists, skipping`);
-                    continue;
-                }
+                    // Update existing game
+                    const { error } = await supabase
+                        .from('games')
+                        .update(gameData)
+                        .eq('link', game.gameId);
 
-                // Insert game
-                const { error } = await supabase
-                    .from('games')
-                    .insert({
-                        nfl_team_1: team1.id,
-                        nfl_team_2: team2.id,
-                        link: game.gameId,
-                        start_time: startTime.toISOString(),
-                        nfl_round_id: round.id,
-                        is_final: false
-                    });
-
-                if (error) {
-                    console.error(`Error inserting game: ${error.message}`);
+                    if (error) {
+                        console.error(`Error updating game: ${error.message}`);
+                    } else {
+                        console.log(`✓ Updated game: ${team1.name} vs ${team2.name} (${game.gameId})`);
+                        totalGamesAdded++;
+                    }
                 } else {
-                    console.log(`✓ Added game: ${team1.name} vs ${team2.name} (${game.gameId})`);
-                    totalGamesAdded++;
+                    // Insert new game
+                    const { error } = await supabase
+                        .from('games')
+                        .insert(gameData);
+
+                    if (error) {
+                        console.error(`Error inserting game: ${error.message}`);
+                    } else {
+                        console.log(`✓ Added game: ${team1.name} vs ${team2.name} (${game.gameId})`);
+                        totalGamesAdded++;
+                    }
                 }
             }
         }
