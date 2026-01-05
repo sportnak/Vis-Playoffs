@@ -217,7 +217,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                                 </>
                                             ))}
                                             <TableCell className={isMobile ? 'p-1' : ''}>
-                                                <img src={player.headshot_url} className={isMobile ? 'h-6 w-6' : 'h-8 w-8'} />
+                                                <img src={player.headshot_url} className={isMobile ? 'w-8' : 'w-8'} />
                                             </TableCell>
                                             <TableCell className={isMobile ? 'text-xs p-2' : ''}>{player.name}</TableCell>
                                             <TableCell className={isMobile ? 'text-xs p-2' : ''}>{player.nfl_team.name}</TableCell>
