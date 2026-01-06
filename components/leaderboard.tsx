@@ -1,5 +1,4 @@
 'use client';
-import { usePoints } from '@/app/leagues/[league_id]/hooks';
 import { Team, Pool, NFLRound, Member } from '@/app/types';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,10 +10,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMemo, useEffect, useState } from 'react';
 import { mapRound } from '@/utils';
-import { createClient } from '@/utils/supabase/client';
-import { useUIStore } from '@/stores/ui-store';
-import { useLeagueStore } from '@/stores/league-store';
-import { useUserStore } from '@/stores/user-store';
+import { useTeamStandings } from '@/hooks/use-team-standings';
+import { getRankIcon, getRankBadgeVariant, getInitials } from '@/utils/standings-utils';
 import { Trophy, Medal, Award, TrendingUp } from 'lucide-react';
 
 interface TeamWithScores extends Team {
@@ -33,48 +30,15 @@ interface LeaderboardEntry {
 }
 
 export function Leaderboard({ league_id }: { league_id: string }) {
-    const round_id = useUIStore((state) => state.round_id);
-    const rounds = useLeagueStore((state) => state.rounds);
-    const pools = useLeagueStore((state) => state.pools);
-    const league = useLeagueStore((state) => state.currentLeague);
-    const member = useUserStore((state) => state.member);
+    const { sortedTeams, currentRound, rounds, pools, league, member } = useTeamStandings(league_id, null);
 
-    const currentRound = useMemo(() => {
-        return rounds?.find((round) => round.id === round_id);
-    }, [rounds, round_id]);
-
-    const { teams: teamSeason, refresh: refreshTeam } = usePoints(league_id, null);
-
-    // Real-time updates for stats changes
-    useEffect(() => {
-        const handleStatsChange = () => {
-            refreshTeam();
-        };
-
-        const client = createClient();
-        const channel = client.channel('supabase_realtime');
-
-        channel
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stats' }, handleStatsChange)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stats' }, handleStatsChange)
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'stats' }, handleStatsChange)
-            .subscribe();
-
-        return () => {
-            client.removeChannel(channel);
-        };
-    }, [refreshTeam]);
-
-    const [selectedRoundForFilter, setSelectedRoundForFilter] = useState<string>(round_id);
+    const [selectedRoundForFilter, setSelectedRoundForFilter] = useState<string>(currentRound?.id || '');
 
     useEffect(() => {
-        setSelectedRoundForFilter(round_id);
-    }, [round_id]);
-
-    // Sort teams by total score
-    const sortedTeams = useMemo(() => {
-        return [...teamSeason].sort((a, b) => b.seasonScore - a.seasonScore);
-    }, [teamSeason]);
+        if (currentRound?.id) {
+            setSelectedRoundForFilter(currentRound.id);
+        }
+    }, [currentRound]);
 
     // Calculate leaderboard entries with wins tracking
     const leaderboardEntries: LeaderboardEntry[] = useMemo(() => {
@@ -159,25 +123,6 @@ export function Leaderboard({ league_id }: { league_id: string }) {
         return grouped;
     }, [leaderboardEntries, currentRound]);
 
-    const getInitials = (email: string) => {
-        return email.substring(0, 2).toUpperCase();
-    };
-
-    const getRankBadgeVariant = (rank: number) => {
-        if (rank === 1) return 'default';
-        if (rank === 2) return 'secondary';
-        if (rank === 3) return 'outline';
-        return 'outline';
-    };
-
-    const getRankIcon = (rank: number) => {
-        if (rank === 1) return <Trophy className="h-4 w-4 text-yellow-500" />;
-        if (rank === 2) return <Medal className="h-4 w-4 text-gray-400" />;
-        if (rank === 3) return <Award className="h-4 w-4 text-amber-700" />;
-        return null;
-    };
-
-    console.log(topRoundScorer)
 
     return (
         <div className="space-y-6">

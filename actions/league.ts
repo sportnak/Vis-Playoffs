@@ -240,7 +240,6 @@ export async function loadRounds(league_id: string) {
     const response = await client
         .from('nfl_rounds')
         .select('*, round_settings(*), pools(*)')
-        .gt('round', 0)
         .eq('pools.league_id', league_id)
         .eq('round_settings.league_id', league_id);
     return response;
