@@ -61,20 +61,21 @@ export function usePools(league_id: string, round_id?: string) {
 export function useTeams(pool_ids: string[]) {
     const [teams, setTeams] = useState<Team[]>([]);
 
+    const poolIdsKey = pool_ids?.join(',') || '';
     const load = useCallback(async () => {
         if (!pool_ids?.filter((x) => x).length) {
             return;
         }
         const response = await loadTeams({ pool_ids });
         setTeams(response);
-    }, [pool_ids]);
+    }, [poolIdsKey]);
 
     useEffect(() => {
         if (pool_ids == null) {
             return;
         }
         load();
-    }, [pool_ids, load]);
+    }, [poolIdsKey, load]);
 
     return { teams, load };
 }

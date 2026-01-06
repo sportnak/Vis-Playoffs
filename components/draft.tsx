@@ -29,9 +29,14 @@ export function Draft({ leagueId, roundId }) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const refreshDraftRef = React.useRef(refreshDraft);
+    useEffect(() => {
+        refreshDraftRef.current = refreshDraft;
+    }, [refreshDraft]);
+
     useEffect(() => {
         const handleInserts = (payload) => {
-            refreshDraft();
+            refreshDraftRef.current();
         };
 
         const client = createClient();
@@ -44,7 +49,7 @@ export function Draft({ leagueId, roundId }) {
         return () => {
             client.removeChannel(channel);
         };
-    }, [refreshDraft]);
+    }, []);
 
     if (!league) {
         return (

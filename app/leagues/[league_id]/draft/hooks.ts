@@ -71,7 +71,7 @@ export function useDraft(league_id: string, round_id: string, member: Member) {
     const setPool = useDraftStore((state) => state.setPool);
     const setTeam = useDraftStore((state) => state.setTeam);
 
-    const pool_ids = useMemo(() => pool?.id ? [pool.id] : [], [pool]);
+    const pool_ids = useMemo(() => pool?.id ? [pool.id] : [], [pool?.id]);
     const { teams } = useTeams(pool_ids);
     const { rounds } = useRounds(league_id);
 
@@ -85,19 +85,20 @@ export function useDraft(league_id: string, round_id: string, member: Member) {
         [team, pool]
     );
 
+    const member_id = member?.id;
     const load = useCallback(async () => {
-        console.log('[useDraft] Starting load with:', { member_id: member?.id, league_id, round_id });
+        console.log('[useDraft] Starting load with:', { member_id, league_id, round_id });
 
-        if (!member?.id) {
-            console.error('[useDraft] No member ID found', member);
+        if (!member_id) {
+            console.error('[useDraft] No member ID found', member_id);
             return;
         }
 
-        const teamResponse = await loadTeam(league_id, member.id);
+        const teamResponse = await loadTeam(league_id, member_id);
         console.log('[useDraft] Team response:', teamResponse);
 
         if (!teamResponse.data || teamResponse.data.length === 0) {
-            console.error('[useDraft] No team found for member', member.id);
+            console.error('[useDraft] No team found for member', member_id);
             return;
         }
 
@@ -115,10 +116,14 @@ export function useDraft(league_id: string, round_id: string, member: Member) {
         const loadedPool = pool_response.data.find((pool) => pool.draft_order.includes(loadedTeam.id));
         console.log('[useDraft] Loaded pool:', loadedPool);
         setPool(loadedPool);
-    }, [member, league_id, round_id, setTeam, setPool]);
+    }, [member_id, league_id, round_id, setTeam, setPool]);
 
+    const hasLoadedRef = useRef(false);
     useEffect(() => {
-        load();
+        if (!hasLoadedRef.current) {
+            load();
+            hasLoadedRef.current = true;
+        }
     }, [load]);
 
     const handleDraftPlayer = useCallback(
