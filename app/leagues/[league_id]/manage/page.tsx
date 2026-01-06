@@ -32,7 +32,7 @@ export default function ManageLeague() {
             },
             {
                 title: 'MEMBERS',
-                content: <MembersTable members={members} league_id={league?.id} />
+                content: <MembersTable leagueId={league?.id} />
             },
             {
                 title: 'GENERAL',
