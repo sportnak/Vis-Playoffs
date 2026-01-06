@@ -76,7 +76,7 @@ export function Draft({ leagueId, roundId }) {
                     </TabsContent>
                     <TabsContent value="draft" className="mt-2">
                         <div className="p-2 bg-steel shadow-md rounded-md h-full border border-ui-border">
-                            {currentRound.round_settings?.length ?
+                            {currentRound?.round_settings?.length ?
                                 <DraftTable
                                     pool={pool}
                                     teams={teams}
@@ -107,7 +107,7 @@ export function Draft({ leagueId, roundId }) {
                     />
                 </div>
                 <div className="flex-[5] bg-steel shadow-md rounded-xl h-full border border-ui-border">
-                    {currentRound.round_settings?.length ?
+                    {currentRound?.round_settings?.length ?
                         <DraftTable
                             pool={pool}
                             teams={teams}
