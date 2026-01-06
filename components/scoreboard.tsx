@@ -1,8 +1,6 @@
 'use client';
 import { usePoints } from '@/app/leagues/[league_id]/hooks';
-import { Team } from '@/app/types';
 import { mapPos } from '@/app/util';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { TeamCard } from './teams';
 import { useMemo, useEffect, useState } from 'react';
@@ -13,6 +11,7 @@ import { useUIStore } from '@/stores/ui-store';
 import { useLeagueStore } from '@/stores/league-store';
 import { useUserStore } from '@/stores/user-store';
 import { useURLState } from '@/hooks/use-url-state';
+import { DraftSummary } from './draft-summary';
 
 export function Scoreboard({ league_id }: { league_id: string }) {
     const round_id = useUIStore((state) => state.round_id);
@@ -29,7 +28,6 @@ export function Scoreboard({ league_id }: { league_id: string }) {
 
     useEffect(() => {
         if (!currentRound?.round_settings?.length) {
-            console.log('setting tab')
             updateURLState({ tab: 'draft' })
         }
     }, [currentRound])
@@ -170,172 +168,3 @@ export function Scoreboard({ league_id }: { league_id: string }) {
     );
 }
 
-function totalPoints(team: Team, pool_id?: string) {
-    const total =
-        team?.team_players
-            .filter((x) => !pool_id || x.pool_id === pool_id)
-            .reduce((acc, player) => acc + player.score, 0) ?? 0;
-    return parseFloat(total.toFixed(2));
-}
-
-const statsKeys = [
-    'rec',
-    'rec_yds',
-    'rec_td',
-    'rush_yds',
-    'rush_att',
-    'rush_td',
-    'pass_att',
-    'pass_yds',
-    'pass_td',
-    'fum',
-    'int'
-];
-function mapStatNameShort(stat) {
-    switch (stat) {
-        case 'pass_att':
-            return 'Pass';
-        case 'pass_yds':
-            return 'Pass Yds';
-        case 'pass_td':
-            return 'Pass TDs';
-        case 'rush_att':
-            return 'Rush';
-        case 'rush_yds':
-            return 'Rush Yds';
-        case 'rush_td':
-            return 'Rush TDs';
-        case 'fum':
-            return 'Fum';
-        case 'int':
-            return 'Ints';
-        case 'rec':
-            return 'Rec';
-        case 'rec_yds':
-            return 'Rec Yds';
-        case 'rec_td':
-            return 'Rec TDs';
-        default:
-            return stat;
-    }
-}
-
-function DraftSummary({ teams, pools, round_id, pool_id }) {
-    const pools_by_round = useMemo(() => {
-        return pools.reduce(
-            (acc, pool) => ({
-                ...acc,
-                [pool.round_id]: [...(acc[pool.round_id] || []), pool]
-            }),
-            {}
-        );
-    }, [pools]);
-
-    const teams_by_id = useMemo(() => {
-        return teams?.reduce((acc, team) => {
-            acc[team.id] = team.name;
-            return acc;
-        }, {});
-    }, [teams]);
-    const summary = useMemo(() => {
-        let pool_ids = [];
-        if (pool_id) {
-            pool_ids = [pool_id];
-        } else if (round_id) {
-            pool_ids = pools_by_round[round_id]?.map((x) => x.id);
-        } else {
-            pool_ids = pools.map((x) => x.id);
-        }
-        console.log(
-            round_id,
-            pool_ids,
-            pools.map((x) => x.id)
-        );
-        const grouped = teams.reduce((acc, team) => {
-            for (const player of team.team_players) {
-                if (!pool_ids.includes(player.pool_id)) {
-                    continue;
-                }
-                if (!acc[player.player_id]) {
-                    acc[player.player_id] = [player];
-                } else {
-                    acc[player.player_id].push(player);
-                }
-            }
-            return acc;
-        }, {});
-
-        const summaries = [];
-        for (const playerId in grouped) {
-            const players = grouped[playerId];
-            const pos = players.map((x) => x.pick_number);
-            const adp = players.reduce((acc, player) => acc + player.pick_number, 0) / players.length;
-
-            summaries.push({
-                adp,
-                team: teams_by_id[players[0].team_id],
-                points: players[0].score,
-                stats: players[0].stats,
-                min: Math.min(...pos),
-                max: Math.max(...pos),
-                name: players[0].player.name
-            });
-        }
-        summaries.sort((a, b) => a.adp - b.adp);
-        return summaries;
-    }, [teams, pools, round_id, pool_id]);
-
-    return (
-        <div className="w-full max-h-screen overflow-scroll">
-            <Table className="w-full">
-                <TableHeader>
-                    <TableRow style={{ position: 'sticky', top: 0, background: '#1A1E25', zIndex: 2 }}>
-                        <TableHead
-                            style={{ width: '120px', position: 'sticky', left: 0, background: '#1A1E25', zIndex: 1 }}
-                        >
-                            Name
-                        </TableHead>
-                        <TableHead style={{ width: '40px' }}>
-                            {pool_id == null ? 'ADP' : 'Pos'}
-                        </TableHead>
-                        {pool_id != null && <TableHead style={{ width: '40px' }}>Team</TableHead>}
-                        {pool_id == null && <TableHead style={{ width: '40px' }}>Min</TableHead>}
-                        {pool_id == null && <TableHead style={{ width: '40px' }}>Max</TableHead>}
-                        <TableHead style={{ width: '40px' }}>Points</TableHead>
-                        {statsKeys.map((key) => (
-                            <TableHead key={key}>{mapStatNameShort(key)}</TableHead>
-                        ))}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {summary.map((item, index) => (
-                        <TableRow key={index}>
-                            <TableCell
-                                style={{
-                                    fontWeight: 'bold',
-                                    width: '120px',
-                                    position: 'sticky',
-                                    left: 0,
-                                    background: '#1A1E25',
-                                    zIndex: 1
-                                }}
-                            >
-                                {item.name}
-                            </TableCell>
-                            <TableCell style={{ width: '40px' }}>
-                                {pool_id == null ? item.adp.toFixed(2) : Math.floor(parseFloat(item.adp))}
-                            </TableCell>
-                            {pool_id != null && <TableCell style={{ width: '40px' }}>{item.team}</TableCell>}
-                            {pool_id == null && <TableCell style={{ width: '40px' }}>{item.min}</TableCell>}
-                            {pool_id == null && <TableCell style={{ width: '40px' }}>{item.max}</TableCell>}
-                            <TableCell style={{ width: '40px' }}>{item.points}</TableCell>
-                            {statsKeys.map((key) => (
-                                <TableCell key={key}>{item.stats?.[key] ?? 0}</TableCell>
-                            ))}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
-    );
-}

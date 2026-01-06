@@ -20,6 +20,7 @@ import { Trophy, Medal, Award, TrendingUp } from 'lucide-react';
 interface TeamWithScores extends Team {
     seasonScore: number;
     poolScores: Record<string, number>;
+    roundScores: Record<string, number>;
 }
 
 interface LeaderboardEntry {
@@ -42,7 +43,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
         return rounds?.find((round) => round.id === round_id);
     }, [rounds, round_id]);
 
-    const { teams: teamSeason, refresh: refreshTeam } = usePoints(league_id, round_id);
+    const { teams: teamSeason, refresh: refreshTeam } = usePoints(league_id, null);
 
     // Real-time updates for stats changes
     useEffect(() => {
@@ -109,13 +110,12 @@ export function Leaderboard({ league_id }: { league_id: string }) {
 
         currentRound?.pools?.forEach((pool) => {
             const poolTeams = leaderboardEntries
-                .filter((entry) => entry.team.pool_id === pool.id)
+                .filter((entry) => entry.team.poolScores[pool.id] != null)
                 .sort((a, b) => {
                     const aScore = a.team.poolScores[pool.id] || 0;
                     const bScore = b.team.poolScores[pool.id] || 0;
                     return bScore - aScore;
                 });
-
             if (poolTeams.length > 0) {
                 leaders[pool.id] = poolTeams[0];
             }
@@ -144,7 +144,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
 
         currentRound?.pools?.forEach((pool) => {
             grouped[pool.id] = leaderboardEntries
-                .filter((entry) => entry.team.pool_id === pool.id)
+                .filter((entry) => entry.team.poolScores[pool.id] != null)
                 .sort((a, b) => {
                     const aScore = a.team.poolScores[pool.id] || 0;
                     const bScore = b.team.poolScores[pool.id] || 0;
@@ -176,6 +176,8 @@ export function Leaderboard({ league_id }: { league_id: string }) {
         if (rank === 3) return <Award className="h-4 w-4 text-amber-700" />;
         return null;
     };
+
+    console.log(topRoundScorer)
 
     return (
         <div className="space-y-6">
@@ -210,7 +212,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{topRoundScorer?.totalPoints.toFixed(2) || '0.00'}</div>
+                        <div className="text-3xl font-bold">{topRoundScorer?.team.roundScores[currentRound.id].toFixed(2) || '0.00'}</div>
                         <p className="text-sm text-muted-foreground mt-1">
                             {topRoundScorer?.member?.email || 'Unknown'}
                         </p>
@@ -552,7 +554,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                                                 {entry.team.name}
                                             </TableCell>
                                             <TableCell className={`text-right ${entry.rank <= 3 ? 'font-bold text-lg' : 'font-semibold'}`}>
-                                                {entry.totalPoints.toFixed(2)}
+                                                {entry.team.roundScores[selectedRoundForFilter]?.toFixed(2) ?? (0).toFixed(2)}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Badge variant="outline">

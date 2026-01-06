@@ -60,6 +60,13 @@ export function LeagueHeader() {
             {!isMobile && (
                 <div className="flex gap-2">
                     <Button
+                        variant={tab === 'leaderboard' ? 'solid' : 'secondary'}
+                        className="tracking-mono" size="sm"
+                        onClick={() => changeTab('leaderboard')}
+                    >
+                        LEADERBOARD
+                    </Button>
+                    <Button
                         variant={tab === 'scoreboard' ? 'solid' : 'secondary'}
                         className="tracking-mono" size="sm"
                         onClick={() => changeTab('scoreboard')}

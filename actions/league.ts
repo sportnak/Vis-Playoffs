@@ -241,7 +241,6 @@ export async function loadRounds(league_id: string) {
         .from('nfl_rounds')
         .select('*, round_settings(*), pools(*)')
         .eq('pools.league_id', league_id)
-        .gt('round', 0)
         .eq('round_settings.league_id', league_id);
     return response;
 }
@@ -755,13 +754,18 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
     const client = await createClient();
     const request = client.from('round_settings').select('*').eq('league_id', league_id).eq('round_id', round_id);
     const round_settings = await request;
-    console.log(round_settings, league_id, round_id)
     const games = await client.from('games').select('*');
     const pools = await client.from('pools').select('*').eq('league_id', league_id);
     const pool_ids_by_round = pools.data.reduce((acc, curr) => {
         acc[curr.round_id] = acc[curr.round_id] ? [...acc[curr.round_id], curr.id] : [curr.id];
         return acc;
     }, {})
+
+    const poolsById = pools.data.reduce((acc, curr) => ({
+        ...acc,
+        [curr.id]: curr,
+    }), {})
+
     const { data: teamsWithPlayers } = await client
         .from('team')
         .select('*, players:team_players(*, player(*))')
@@ -773,39 +777,70 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
         acc[curr.id] = curr;
         return acc;
     }, {});
+
+    // Get all round settings for the league to calculate scores for all rounds
+    const { data: allRoundSettings } = await client
+        .from('round_settings')
+        .select('*')
+        .eq('league_id', league_id);
+
+    const roundSettingsByRound = allRoundSettings?.reduce((acc, curr) => {
+        acc[curr.round_id] = curr;
+        return acc;
+    }, {}) || {};
+
     const teamsWithPlayersWithStats = teamsWithPlayers
         .map((team) => {
             return {
                 ...team,
                 team_players: team.players.map((player) => {
-                    const player_stats = stats.filter((x) => x.player_id === player.player.id).filter(x => {
+                    // Get ALL stats for this player across all games in relevant rounds
+                    const player_all_stats = stats.filter((x) => x.player_id === player.player.id).filter(x => {
                         const game = games_by_id[x.game_id];
                         const round = game.nfl_round_id
                         const pool_ids = pool_ids_by_round[round]
                         return pool_ids?.includes(player.pool_id)
-                    })[0]
+                    });
+
+                    // Calculate cumulative score across all games
+                    let totalScore = 0;
+                    for (const stat of player_all_stats) {
+                        const game = games_by_id[stat.game_id];
+                        const playerRoundSettings = game ? roundSettingsByRound[game.nfl_round_id] : round_settings.data?.[0];
+                        totalScore += scorePlayer(player, stat, playerRoundSettings) ?? 0;
+                    }
+
+                    // For display purposes, use the first stat (or null if no stats)
+                    const player_stats = player_all_stats[0] || null;
 
                     return {
                         ...player,
                         stats: player_stats,
-                        score: scorePlayer(player, player_stats, round_settings.data?.[0]) ?? 0
+                        score: parseFloat(totalScore.toFixed(2))
                     };
                 })
             };
         })
         .map((team) => {
             const poolScores = {};
+            const roundScores = {}
             let seasonScore = 0;
             for (const player of team.team_players) {
                 seasonScore += player.score;
-                if (!poolScores[player.pool_id]) {
-                    poolScores[player.pool_id] = player.score;
+                const poolId = player.pool_id ?? 0
+                const pool = !player.pool_id ? pools.data[0] : poolsById[poolId]
+                if (!poolScores[poolId]) {
+                    roundScores[pool?.round_id] = player.score
+                    poolScores[poolId] = player.score;
                 } else {
-                    poolScores[player.pool_id] += player.score;
+                    roundScores[pool?.round_id] += player.score
+                    poolScores[poolId] += player.score;
                 }
             }
+
             return {
                 ...team,
+                roundScores,
                 poolScores,
                 seasonScore: parseFloat(seasonScore.toFixed(2))
             };
