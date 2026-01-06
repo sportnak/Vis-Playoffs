@@ -15,6 +15,7 @@
         "@chakra-ui/react": "^3.2.5",
         "@emotion/react": "^11.14.0",
         "@netlify/blobs": "^8.1.0",
+        "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-avatar": "^1.1.11",
         "@radix-ui/react-checkbox": "^1.3.3",
         "@radix-ui/react-dialog": "^1.1.15",

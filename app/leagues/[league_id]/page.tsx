@@ -6,6 +6,7 @@ import { useLeaguePageData } from '@/hooks/use-league-data';
 import { useUIStore } from '@/stores/ui-store';
 import { LeagueHeader } from '@/components/league-header';
 import { Scoreboard } from '@/components/scoreboard';
+import { Leaderboard } from '@/components/leaderboard';
 import Rounds from '@/components/rounds';
 import { Draft } from '@/components/draft';
 import MembersTable from '@/components/members';
@@ -39,6 +40,7 @@ function LeagueContent() {
                 <LeagueHeaderSkeleton />
                 {tab === 'scoreboard' && <ScoreboardSkeleton />}
                 {tab === 'draft' && <DraftSkeleton />}
+                {tab === 'leaderboard' && <ScoreboardSkeleton />}
                 {tab === 'settings' && <SettingsSkeleton />}
                 {tab === 'teams' && <TeamsSkeleton />}
             </div>
@@ -58,6 +60,7 @@ function LeagueContent() {
         <div>
             <LeagueHeader />
             {tab === 'scoreboard' && <Scoreboard league_id={league_id as string} />}
+            {tab === 'leaderboard' && <Leaderboard league_id={league_id as string} />}
             {tab === 'settings' && <Rounds rounds={rounds.data} leagueId={league.data.id} />}
             {tab === 'draft' && <Draft leagueId={league.data.id} roundId={round_id} />}
             {tab === 'teams' && <MembersTable leagueId={league.data.id} />}

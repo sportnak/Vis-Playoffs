@@ -10,7 +10,7 @@ import { Tooltip } from './ui/tooltip';
 import { useParams } from 'next/navigation';
 import { useCallback, useState, useEffect } from 'react';
 import { MdAdminPanelSettings, MdAssignment, MdOutlinePeopleAlt, MdOutlineScoreboard } from 'react-icons/md';
-import { Menu } from 'lucide-react';
+import { Menu, Trophy } from 'lucide-react';
 import { useURLState } from '@/hooks/use-url-state';
 import { useUserStore } from '@/stores/user-store';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -75,6 +75,15 @@ export default function Header() {
                                 >
                                     <MdAssignment className="text-xl" />
                                     <span>Draft</span>
+                                </Button>
+
+                                <Button
+                                    variant={tab === 'leaderboard' ? 'solid' : 'ghost'}
+                                    className="justify-start gap-3"
+                                    onClick={() => changeTab('leaderboard')}
+                                >
+                                    <Trophy className="text-xl" />
+                                    <span>Leaderboard</span>
                                 </Button>
 
                                 {league?.admin_id === user?.id && (
@@ -158,6 +167,16 @@ export default function Header() {
                 >
                     <MdAssignment className="text-xl" />
                 </Button>
+
+                <Tooltip content="Leaderboard">
+                    <Button
+                        className="rounded-full w-10 h-10"
+                        variant={tab === 'leaderboard' ? 'solid' : 'ghost'}
+                        onClick={() => changeTab('leaderboard')}
+                    >
+                        <Trophy className="text-xl" />
+                    </Button>
+                </Tooltip>
 
                 {league?.admin_id === user?.id && (
                     <Button
