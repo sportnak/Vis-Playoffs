@@ -68,11 +68,11 @@ module.exports = {
   		},
   		fontFamily: {
   			'roboto-mono': [
-  				'Roboto Mono"',
+  				'Roboto Mono',
   				'monospace'
   			],
   			'roboto-flex': [
-  				'Roboto Flex"',
+  				'Roboto Flex',
   				'sans-serif'
   			]
   		},
@@ -109,7 +109,7 @@ module.exports = {
     function({ addUtilities }) {
       addUtilities({
         '.tracking-mono': {
-          'font-family': '"Roboto Mono", monospace',
+          'font-family': 'Roboto Mono, monospace',
           'letter-spacing': '0.025rem',
         },
       });
