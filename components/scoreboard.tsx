@@ -28,8 +28,7 @@ export function Scoreboard({ league_id }: { league_id: string }) {
     const { teams: teamSeason, refresh: refreshTeam } = usePoints(league_id, round_id);
 
     useEffect(() => {
-        console.log(currentRound.round_settings?.length)
-        if (!currentRound.round_settings?.length) {
+        if (!currentRound?.round_settings?.length) {
             console.log('setting tab')
             updateURLState({ tab: 'draft' })
         }
