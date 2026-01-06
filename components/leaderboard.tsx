@@ -194,7 +194,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{topOverallScorer?.totalPoints.toFixed(2) || '0.00'}</div>
+                        <div className="text-3xl font-bold">{topOverallScorer?.totalPoints?.toFixed(2) || '0.00'}</div>
                         <p className="text-sm text-muted-foreground mt-1">
                             {topOverallScorer?.member?.email || 'Unknown'}
                         </p>
@@ -205,14 +205,14 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                     <CardHeader className="pb-3">
                         <CardDescription className="flex items-center gap-2 tracking-mono">
                             <TrendingUp className="h-4 w-4" />
-                            TOP SCORER - {mapRound(currentRound?.round).toUpperCase()}
+                            TOP SCORER - {mapRound(currentRound?.round)?.toUpperCase()}
                         </CardDescription>
                         <CardTitle className="text-2xl">
                             {topRoundScorer?.team.name || 'N/A'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{topRoundScorer?.team.roundScores[currentRound.id].toFixed(2) || '0.00'}</div>
+                        <div className="text-3xl font-bold">{topRoundScorer?.team.roundScores[currentRound?.id]?.toFixed(2) || '0.00'}</div>
                         <p className="text-sm text-muted-foreground mt-1">
                             {topRoundScorer?.member?.email || 'Unknown'}
                         </p>

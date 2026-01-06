@@ -109,7 +109,6 @@ export function useDraft(league_id: string, round_id: string, member: Member) {
         console.log('[useDraft] Pool response:', pool_response);
 
         if (!pool_response.data) {
-            console.error('[useDraft] No pools found');
             return;
         }
 
