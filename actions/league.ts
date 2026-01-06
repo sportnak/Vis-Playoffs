@@ -241,6 +241,7 @@ export async function loadRounds(league_id: string) {
         .from('nfl_rounds')
         .select('*, round_settings(*), pools(*)')
         .eq('pools.league_id', league_id)
+        .gt('round', 0)
         .eq('round_settings.league_id', league_id);
     return response;
 }
@@ -787,7 +788,7 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
                     return {
                         ...player,
                         stats: player_stats,
-                        score: scorePlayer(player, player_stats, round_settings.data[0]) ?? 0
+                        score: scorePlayer(player, player_stats, round_settings.data?.[0]) ?? 0
                     };
                 })
             };
@@ -813,9 +814,12 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
     return teamsWithPlayersWithStats;
 }
 
-function scorePlayer(player: TeamPlayer, stats: Stats, round_settings: RoundSettings) {
+function scorePlayer(player: TeamPlayer, stats: Stats, round_settings?: RoundSettings) {
     let score = 0;
     const position = getPlayerPosition(player.player);
+    if (!round_settings) {
+        return 0;
+    }
 
     // Apply position-specific PPR scoring
     if (position === 'QB' || position === 'WR') {

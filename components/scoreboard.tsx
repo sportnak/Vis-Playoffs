@@ -12,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useUIStore } from '@/stores/ui-store';
 import { useLeagueStore } from '@/stores/league-store';
 import { useUserStore } from '@/stores/user-store';
+import { useURLState } from '@/hooks/use-url-state';
 
 export function Scoreboard({ league_id }: { league_id: string }) {
     const round_id = useUIStore((state) => state.round_id);
     const rounds = useLeagueStore((state) => state.rounds);
     const pools = useLeagueStore((state) => state.pools);
+    const { updateURLState } = useURLState()
     const member = useUserStore((state) => state.member);
 
     const currentRound = useMemo(() => {
@@ -24,6 +26,14 @@ export function Scoreboard({ league_id }: { league_id: string }) {
     }, [rounds, round_id]);
 
     const { teams: teamSeason, refresh: refreshTeam } = usePoints(league_id, round_id);
+
+    useEffect(() => {
+        console.log(currentRound.round_settings?.length)
+        if (!currentRound.round_settings?.length) {
+            console.log('setting tab')
+            updateURLState({ tab: 'draft' })
+        }
+    }, [currentRound])
 
     // Real-time updates for stats changes
     useEffect(() => {
@@ -126,14 +136,14 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                                 <div className="mb-4">
                                     <p
                                         className={`text-xs ${pointsBack === 0
-                                                ? 'text-cyan'
-                                                : pointsBack < -20
-                                                    ? 'text-semantic-danger'
-                                                    : pointsBack < -10
-                                                        ? 'text-semantic-warning'
-                                                        : pointsBack < -5
-                                                            ? 'text-semantic-good'
-                                                            : 'text-cyan'
+                                            ? 'text-cyan'
+                                            : pointsBack < -20
+                                                ? 'text-semantic-danger'
+                                                : pointsBack < -10
+                                                    ? 'text-semantic-warning'
+                                                    : pointsBack < -5
+                                                        ? 'text-semantic-good'
+                                                        : 'text-cyan'
                                             }`}
                                     >
                                         {pointsBack === 0 ? 'Leading' : `${pointsBack} back`}

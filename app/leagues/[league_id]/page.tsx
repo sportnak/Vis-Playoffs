@@ -20,7 +20,7 @@ import { P } from '@/components/ui/text';
 
 function LeagueContent() {
     const { league_id } = useParams();
-    const { tab, round_id, updateURLState } = useURLState();
+    const { tab, round_id } = useURLState();
     const { isLoading, isError, league, rounds } = useLeaguePageData(league_id as string);
 
     // Sync URL state to Zustand UI store
@@ -46,7 +46,7 @@ function LeagueContent() {
     }
 
     // Error state
-    if (isError || !league) {
+    if (isError || !league.data) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen">
                 <P className="text-xl">Failed to load league</P>
@@ -58,9 +58,9 @@ function LeagueContent() {
         <div>
             <LeagueHeader />
             {tab === 'scoreboard' && <Scoreboard league_id={league_id as string} />}
-            {tab === 'settings' && <Rounds rounds={rounds} leagueId={league.id} />}
-            {tab === 'draft' && <Draft leagueId={league.id} roundId={round_id} />}
-            {tab === 'teams' && <MembersTable league_id={league.id} members={league.league_members} />}
+            {tab === 'settings' && <Rounds rounds={rounds.data} leagueId={league.data.id} />}
+            {tab === 'draft' && <Draft leagueId={league.data.id} roundId={round_id} />}
+            {tab === 'teams' && <MembersTable leagueId={league.data.id} />}
         </div>
     );
 }

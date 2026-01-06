@@ -7,6 +7,7 @@ import { useDraft } from '@/app/leagues/[league_id]/draft/hooks';
 import { createClient } from '@/utils/supabase/client';
 import { useLeagueStore } from '@/stores/league-store';
 import { useUserStore } from '@/stores/user-store';
+import { H1, H3, P } from './ui/text';
 
 export function Draft({ leagueId, roundId }) {
     const league = useLeagueStore((state) => state.currentLeague);
@@ -75,14 +76,17 @@ export function Draft({ leagueId, roundId }) {
                     </TabsContent>
                     <TabsContent value="draft" className="mt-2">
                         <div className="p-2 bg-steel shadow-md rounded-md h-full border border-ui-border">
-                            <DraftTable
-                                pool={pool}
-                                teams={teams}
-                                team={team}
-                                member={member}
-                                draftPlayer={draftPlayer}
-                                refreshDraft={refreshDraft}
-                            />
+                            {currentRound.round_settings?.length ?
+                                <DraftTable
+                                    pool={pool}
+                                    teams={teams}
+                                    team={team}
+                                    member={member}
+                                    draftPlayer={draftPlayer}
+                                    refreshDraft={refreshDraft}
+                                /> : <P className="tracking-mono h-[136px] justify-center items-center flex">
+                                    Admin must confirm roster configurations</P>
+                            }
                         </div>
                     </TabsContent>
                 </Tabs>
@@ -103,14 +107,17 @@ export function Draft({ leagueId, roundId }) {
                     />
                 </div>
                 <div className="flex-[5] bg-steel shadow-md rounded-xl h-full border border-ui-border">
-                    <DraftTable
-                        pool={pool}
-                        teams={teams}
-                        team={team}
-                        member={member}
-                        draftPlayer={draftPlayer}
-                        refreshDraft={refreshDraft}
-                    />
+                    {currentRound.round_settings?.length ?
+                        <DraftTable
+                            pool={pool}
+                            teams={teams}
+                            team={team}
+                            member={member}
+                            draftPlayer={draftPlayer}
+                            refreshDraft={refreshDraft}
+                        /> : <P className="tracking-mono h-[136px] justify-center items-center flex">
+                            Admin must confirm roster configurations</P>
+                    }
                 </div>
             </div>
         </div>

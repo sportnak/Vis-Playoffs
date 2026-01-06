@@ -91,10 +91,10 @@ export function useLeaguePageData(league_id: string) {
       memberQuery.isLoading ||
       (memberQuery.data && teamQuery.isLoading),
     isError: leagueQuery.isError || roundsQuery.isError,
-    league: leagueQuery.data,
-    rounds: roundsQuery.data,
-    member: memberQuery.data,
-    team: teamQuery.data,
-    pools: poolsQuery.data,
+    league: leagueQuery,
+    rounds: roundsQuery,
+    member: memberQuery,
+    team: teamQuery,
+    pools: poolsQuery,
   };
 }

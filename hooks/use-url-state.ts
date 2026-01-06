@@ -24,12 +24,12 @@ export function useURLState() {
   }, [searchParams]);
 
   const tab = searchParams.get('tab') || 'scoreboard';
-  const round_id = searchParams.get('round') || defaultRoundId || '4';
+  const round_id = searchParams.get('round');
 
   const updateURLState = useCallback(
     (updates: { tab?: string; round?: string }) => {
       const params = new URLSearchParams(searchParams.toString());
-
+console.log(params)
       if (updates.tab !== undefined) {
         params.set('tab', updates.tab);
       }

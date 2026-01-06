@@ -17,38 +17,41 @@ import {
 } from './ui/dialog';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
 import { P } from './ui/text';
+import { useLeaguePageData } from '@/hooks/use-league-data';
+import { useLeagueStore } from '@/stores/league-store';
 
-export default function MembersTable({ league_id, members }: { league_id: string; members: Member[] }) {
+export default function MembersTable({ leagueId }: { leagueId: string }) {
     const { handleSubmit, control } = useForm<{ email: string }>();
-    const { refresh } = useLeagues();
+    const { league } = useLeaguePageData(leagueId as string);
+    const { currentLeague } = useLeagueStore();
     const { user } = useUser();
     const [dialogOpen, setDialogOpen] = useState(false);
 
     const onSubmit = async (data: { email: string }) => {
-        const res = await inviteMember({ email: data.email, league_id });
+        const res = await inviteMember({ email: data.email, league_id: leagueId });
         if (res.error) {
             toast.error((res as any).statusText === 'Conflict' ? 'Member Already Exists' : 'Error', {
             });
             return;
         }
-        await resetPools(league_id);
+        await resetPools(leagueId);
         toast.success('Member Invited');
         setDialogOpen(false);
-        refresh();
+        league.refetch()
     };
 
     const handleRemoveMember = useCallback(
         async (member: Member) => {
-            const res = await removeMember({ email: member.email, league_id });
+            const res = await removeMember({ email: member.email, league_id: leagueId });
             if (res.error) {
                 toast.error('Failed to remove member');
                 return;
             }
-            await resetPools(league_id);
+            await resetPools(leagueId);
             toast.success('Member Removed');
-            refresh();
+            league.refetch()
         },
-        [league_id, refresh]
+        [leagueId,]
     );
 
     return (
@@ -88,7 +91,7 @@ export default function MembersTable({ league_id, members }: { league_id: string
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {members?.map((member, index) => (
+                    {currentLeague.league_members?.map((member, index) => (
                         <TableRow key={index}>
                             <TableCell>{member.email}</TableCell>
                             <TableCell>{member.status}</TableCell>

@@ -43,7 +43,6 @@ export function useNFLPlayers(
         }
         const response = await loadNFLPlayers(query, pool_id, league_id);
         const data = response.data;
-        console.log('PLayers', data, { query, pool_id, league_id });
         if (query.drafted) {
             data?.sort((a, b) => (b.team_players?.[0]?.pick_number ?? 0) - (a.team_players?.[0]?.pick_number ?? 0));
         }

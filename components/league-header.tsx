@@ -38,6 +38,14 @@ export function LeagueHeader() {
         updateURLState({ round: newRound });
     }, [updateURLState]);
 
+    useEffect(() => {
+        console.log(round_id, rounds,)
+        if (!round_id && rounds.length) {
+            console.log('change round', rounds[0].id)
+            changeRound(rounds[0].id)
+        }
+    }, [round_id, rounds, changeRound])
+
     // Responsive layout
     const [innerWidth, setInnerWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
     useEffect(() => {
