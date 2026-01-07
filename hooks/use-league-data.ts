@@ -24,6 +24,8 @@ export function useLeaguePageData(league_id: string) {
       return response.data || null;
     },
     enabled: !!league_id,
+    staleTime: Infinity, // Rounds don't change during a session
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 
   const memberQuery = useQuery({
@@ -51,6 +53,7 @@ export function useLeaguePageData(league_id: string) {
       return response.data || null;
     },
     enabled: !!league_id,
+    staleTime: 1000 * 30, // 30 seconds - pools can change during drafts
   });
 
   // Sync to Zustand for components that need global access

@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { inviteMember, removeMember, resetPools } from '@/actions/league';
 import { Member } from '@/app/types';
 import { toast } from '@/components/ui/toaster';
-import { useLeagues, useUser } from '@/app/hooks';
+import { useUser } from '@/app/hooks';
 import { useCallback, useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -17,12 +17,12 @@ import {
 } from './ui/dialog';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
 import { P } from './ui/text';
-import { useLeaguePageData } from '@/hooks/use-league-data';
 import { useLeagueStore } from '@/stores/league-store';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function MembersTable({ leagueId }: { leagueId: string }) {
     const { handleSubmit, control } = useForm<{ email: string }>();
-    const { league } = useLeaguePageData(leagueId as string);
+    const queryClient = useQueryClient();
     const { currentLeague } = useLeagueStore();
     const { user } = useUser();
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -37,7 +37,7 @@ export default function MembersTable({ leagueId }: { leagueId: string }) {
         await resetPools(leagueId);
         toast.success('Member Invited');
         setDialogOpen(false);
-        league.refetch()
+        queryClient.invalidateQueries({ queryKey: ['league', leagueId] });
     };
 
     const handleRemoveMember = useCallback(
@@ -49,9 +49,9 @@ export default function MembersTable({ leagueId }: { leagueId: string }) {
             }
             await resetPools(leagueId);
             toast.success('Member Removed');
-            league.refetch()
+            queryClient.invalidateQueries({ queryKey: ['league', leagueId] });
         },
-        [leagueId,]
+        [leagueId, queryClient]
     );
 
     return (

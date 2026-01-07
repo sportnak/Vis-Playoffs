@@ -1,32 +1,17 @@
 'use client';
-import { loadRounds } from '@/actions/league';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useURLState } from '@/hooks/use-url-state';
 import { useLeagueStore } from '@/stores/league-store';
 import { useUserStore } from '@/stores/user-store';
 import { mapRound } from '@/utils';
-import { NFLRound } from '@/app/types';
 
 export function LeagueHeader() {
     const { tab, round_id, updateURLState } = useURLState();
     const league = useLeagueStore((state) => state.currentLeague);
     const user = useUserStore((state) => state.user);
-    const [rounds, setRounds] = useState<NFLRound[]>([]);
-
-    // Load rounds from database
-    useEffect(() => {
-        const fetchRounds = async () => {
-            if (league?.id) {
-                const { data } = await loadRounds(league.id);
-                if (data) {
-                    setRounds(data);
-                }
-            }
-        };
-        fetchRounds();
-    }, [league?.id]);
+    const rounds = useLeagueStore((state) => state.rounds);
 
     // Tab navigation
     const changeTab = useCallback((newTab: string) => {

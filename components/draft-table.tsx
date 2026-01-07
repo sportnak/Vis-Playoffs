@@ -1,6 +1,6 @@
 'use client';
 import { useNFLPlayers } from '@/app/leagues/[league_id]/draft/hooks';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from './ui/toaster';
 import { Checkbox } from './ui/checkbox';
 import { mapPos } from '@/app/util';
@@ -14,6 +14,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { H2, P } from './ui/text';
 import { useUIStore } from '@/stores/ui-store';
 import { CheckCircle } from 'lucide-react';
+import { useLeagueStore } from '@/stores/league-store';
 
 const useIsMobile = () => {
     const [isMobile, setIsMobile] = useState(false);
@@ -39,6 +40,12 @@ const positions = [
 export default function Draft({ pool, team, teams, member, draftPlayer, refreshDraft }) {
     const round_id = useUIStore((state) => state.round_id);
     const isMobile = useIsMobile();
+    const league = useLeagueStore()
+
+    const teamMap = useMemo(() => teams.reduce((acc, curr) => ({
+        ...acc,
+        [curr.id]: curr.name
+    }), {}), [teams])
     const [query, setQuery] = useState({
         drafted: undefined,
         pos: '',
@@ -166,7 +173,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                     </div>
                 </div>
                 {pool && currTurn && (
-                    <div className={`w-full shadow-sm rounded-md bg-graphite mb-3 md:mb-5 flex justify-center ${isMobile ? 'p-2' : 'p-4'}`}>
+                    <div className={`w-full shadow-sm rounded-md bg-graphite mb-3 md:mb-5 flex justify-center items-center gap-2 flex-col ${isMobile ? 'p-2' : 'p-4'}`}>
                         <P className={`font-light text-center ${isMobile ? 'text-xs' : ''}`}>
                             {pool.status === 'complete'
                                 ? 'Drafting complete!'
@@ -174,6 +181,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                     ? "It's your turn to pick!"
                                     : `Waiting on ${currTurn?.name}`}
                         </P>
+                        <P className="text-xs">Draft Order:{pool.draft_order.map(id => teamMap[id]).join(', ')}</P>
                     </div>
                 )}
 
