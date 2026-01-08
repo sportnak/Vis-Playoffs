@@ -78,6 +78,8 @@ export interface Pool {
     id: string,
     status: 'drafting' | 'complete'
     draft_order?: string[],
+    current?: string,
+    pick_number?: number,
     league_id: string,
     round_id: string,
     name: string
