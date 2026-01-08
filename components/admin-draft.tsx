@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { P } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { adminDraftPlayer, loadPool, loadTeams, loadNFLPlayers } from '@/actions/league';
@@ -38,6 +38,7 @@ export function AdminDraft({ leagueId, roundId }) {
     const [positionFilter, setPositionFilter] = useState('ALL');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [innerWidth, setInnerWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+    const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const handleResize = () => setInnerWidth(window.innerWidth);
@@ -66,23 +67,29 @@ export function AdminDraft({ leagueId, roundId }) {
         }
     }, [leagueId, roundId]);
 
-    const loadAvailablePlayers = useCallback(async () => {
+    const loadAvailablePlayers = useCallback(() => {
         if (!selectedPool || !roundId) return;
 
-        const response = await loadNFLPlayers(
-            {
-                drafted: false,
-                pos: positionFilter === 'ALL' ? 'SF' : positionFilter,
-                name: searchQuery,
-                round_id: roundId
-            },
-            selectedPool.id,
-            leagueId.toString()
-        );
-
-        if (response.data) {
-            setPlayers(response.data);
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
         }
+
+        searchDebounceRef.current = setTimeout(async () => {
+            const response = await loadNFLPlayers(
+                {
+                    drafted: false,
+                    pos: positionFilter === 'ALL' ? 'SF' : positionFilter,
+                    name: searchQuery,
+                    round_id: roundId
+                },
+                selectedPool.id,
+                leagueId.toString()
+            );
+
+            if (response.data) {
+                setPlayers(response.data);
+            }
+        }, 750);
     }, [selectedPool, roundId, leagueId, positionFilter, searchQuery]);
 
     useEffect(() => {
@@ -93,6 +100,11 @@ export function AdminDraft({ leagueId, roundId }) {
         if (selectedPool) {
             loadAvailablePlayers();
         }
+        return () => {
+            if (searchDebounceRef.current) {
+                clearTimeout(searchDebounceRef.current);
+            }
+        };
     }, [loadAvailablePlayers, selectedPool]);
 
     const handleDraftPlayer = useCallback(async () => {
@@ -116,7 +128,16 @@ export function AdminDraft({ leagueId, roundId }) {
             setSelectedPlayer(null);
             setDialogOpen(false);
             await loadPoolsAndTeams();
-            await loadAvailablePlayers();
+
+            const updatedPools = await loadPool(roundId, leagueId.toString());
+            if (updatedPools.data) {
+                const updatedPool = updatedPools.data.find(p => p.id === selectedPool.id);
+                if (updatedPool) {
+                    setSelectedPool(updatedPool);
+                }
+            }
+
+            loadAvailablePlayers();
         }
 
         setLoading(false);
