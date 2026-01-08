@@ -2,7 +2,8 @@ export interface Member {
     id: string,
     email: string,
     user_id: string,
-    status: 'pending' | 'accepted'
+    status: 'pending' | 'active',
+    role?: 'admin' | 'member'
 }
 
 export interface League {

@@ -6,12 +6,14 @@ import { useURLState } from '@/hooks/use-url-state';
 import { useLeagueStore } from '@/stores/league-store';
 import { useUserStore } from '@/stores/user-store';
 import { mapRound } from '@/utils';
+import { useIsLeagueAdmin } from '@/app/hooks/use-is-admin';
 
 export function LeagueHeader() {
     const { tab, round_id, updateURLState } = useURLState();
     const league = useLeagueStore((state) => state.currentLeague);
     const user = useUserStore((state) => state.user);
     const rounds = useLeagueStore((state) => state.rounds);
+    const isAdmin = useIsLeagueAdmin();
 
     // Tab navigation
     const changeTab = useCallback((newTab: string) => {
@@ -65,7 +67,7 @@ export function LeagueHeader() {
                     >
                         DRAFT
                     </Button>
-                    {league?.admin_id === user?.id && (
+                    {isAdmin && (
                         <Button
                             onClick={() => changeTab('settings')}
                             variant={tab === 'settings' ? 'solid' : 'secondary'}
@@ -74,13 +76,22 @@ export function LeagueHeader() {
                             SETTINGS
                         </Button>
                     )}
-                    {league?.admin_id === user?.id && (
+                    {isAdmin && (
                         <Button
                             onClick={() => changeTab('teams')}
                             variant={tab === 'teams' ? 'solid' : 'secondary'}
                             className="tracking-mono" size="sm"
                         >
                             TEAMS
+                        </Button>
+                    )}
+                    {isAdmin && (
+                        <Button
+                            onClick={() => changeTab('admin-draft')}
+                            variant={tab === 'admin-draft' ? 'solid' : 'secondary'}
+                            className="tracking-mono" size="sm"
+                        >
+                            ADMIN DRAFT
                         </Button>
                     )}
                 </div>

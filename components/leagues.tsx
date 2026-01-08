@@ -52,15 +52,19 @@ const LeaguesList = () => {
                             </TableCell>
                             <TableCell className="text-center">{league.team?.length || 0}</TableCell>
                             <TableCell className="text-center">
-                                {league.admin_id === user?.id ? (
-                                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
-                                        Admin
-                                    </span>
-                                ) : (
-                                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-sm">
-                                        Member
-                                    </span>
-                                )}
+                                {(() => {
+                                    const userMember = league.league_members?.find(m => m.user_id === user?.id);
+                                    const isAdmin = userMember?.role === 'admin';
+                                    return isAdmin ? (
+                                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
+                                            Admin
+                                        </span>
+                                    ) : (
+                                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-sm">
+                                            Member
+                                        </span>
+                                    );
+                                })()}
                             </TableCell>
                         </TableRow>
                     ))}

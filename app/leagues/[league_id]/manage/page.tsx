@@ -1,5 +1,6 @@
 'use client';
 import { useLeague, useUser } from '@/app/hooks';
+import { useIsLeagueAdmin } from '@/app/hooks/use-is-admin';
 import MembersTable from '@/components/members';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useCallback, useMemo } from 'react';
@@ -16,6 +17,7 @@ export default function ManageLeague() {
     const { league_id } = useParams();
     const { league } = useLeague(league_id.toString());
     const router = useRouter();
+    const isAdmin = useIsLeagueAdmin();
 
     const { members } = useMembers(league?.id);
     const { rounds } = useRounds(league?.id);
@@ -54,7 +56,7 @@ export default function ManageLeague() {
         );
     }
 
-    if (league.admin_id !== user?.id) {
+    if (!isAdmin) {
         router.push(`/leagues/${league_id}`);
         return;
     }

@@ -9,6 +9,7 @@ import { Scoreboard } from '@/components/scoreboard';
 import { Leaderboard } from '@/components/leaderboard';
 import Rounds from '@/components/rounds';
 import { Draft } from '@/components/draft';
+import { AdminDraft } from '@/components/admin-draft';
 import MembersTable from '@/components/members';
 import {
     LeagueHeaderSkeleton,
@@ -43,6 +44,7 @@ function LeagueContent() {
                 {tab === 'leaderboard' && <ScoreboardSkeleton />}
                 {tab === 'settings' && <SettingsSkeleton />}
                 {tab === 'teams' && <TeamsSkeleton />}
+                {tab === 'admin-draft' && <DraftSkeleton />}
             </div>
         );
     }
@@ -64,6 +66,7 @@ function LeagueContent() {
             {tab === 'settings' && <Rounds rounds={rounds.data} leagueId={league.data.id} />}
             {tab === 'draft' && <Draft leagueId={league.data.id} roundId={round_id} />}
             {tab === 'teams' && <MembersTable leagueId={league.data.id} />}
+            {tab === 'admin-draft' && <AdminDraft leagueId={league.data.id} roundId={round_id} />}
         </div>
     );
 }

@@ -6,6 +6,18 @@ import { User } from '@supabase/supabase-js';
 import { uniqueNamesGenerator, Config, names, adjectives, colors, animals } from 'unique-names-generator';
 import { getPlayerPosition, isFlexEligible, isSuperFlexEligible } from '@/utils/player-position';
 
+async function isUserLeagueAdmin(league_id: string, user_id: string): Promise<boolean> {
+    const client = await createClient();
+    const { data } = await client
+        .from('league_members')
+        .select('role')
+        .eq('league_id', league_id)
+        .eq('user_id', user_id)
+        .single();
+
+    return data?.role === 'admin';
+}
+
 const config: Config = {
     dictionaries: [adjectives, colors, animals],
     separator: ' ',
@@ -156,14 +168,10 @@ export async function updateLeague({
         };
     }
 
-    // Verify user is the league admin
-    const { data: league } = await client
-        .from('league')
-        .select('admin_id')
-        .eq('id', league_id)
-        .single();
+    // Verify user is a league admin
+    const isAdmin = await isUserLeagueAdmin(league_id, user.id);
 
-    if (!league || league.admin_id !== user.id) {
+    if (!isAdmin) {
         return {
             error: {
                 message: 'Only league admins can update league settings'
@@ -848,6 +856,135 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
         });
 
     return teamsWithPlayersWithStats;
+}
+
+export async function adminDraftPlayer(
+    league_id: string,
+    round_id: string,
+    pool_id: string,
+    player_id: string
+) {
+    const client = await createClient();
+
+    // Get current authenticated user
+    const { data: { user }, error: userError } = await client.auth.getUser();
+
+    if (userError || !user) {
+        return {
+            error: {
+                message: 'User not authenticated'
+            }
+        };
+    }
+
+    // Verify user is a league admin
+    const isAdmin = await isUserLeagueAdmin(league_id, user.id);
+
+    if (!isAdmin) {
+        return {
+            error: {
+                message: 'Only league admins can draft on behalf of members'
+            }
+        };
+    }
+
+    // Get pool details
+    const pool = await client.from('pools').select('*').eq('id', pool_id);
+
+    if (!pool.data?.[0]) {
+        return {
+            error: {
+                message: 'Pool not found'
+            }
+        };
+    }
+
+    const currentTeamId = pool.data[0].current;
+
+    if (!currentTeamId) {
+        return {
+            error: {
+                message: 'No team is currently on the clock'
+            }
+        };
+    }
+
+    // Call the existing draftPlayer function with the current team
+    return await draftPlayer(league_id, round_id, pool_id, currentTeamId, player_id);
+}
+
+export async function updateMemberRole({
+    league_id,
+    member_user_id,
+    role
+}: {
+    league_id: string;
+    member_user_id: string;
+    role: 'admin' | 'member';
+}) {
+    const client = await createClient();
+
+    // Get current authenticated user
+    const { data: { user }, error: userError } = await client.auth.getUser();
+
+    if (userError || !user) {
+        return {
+            error: {
+                message: 'User not authenticated'
+            }
+        };
+    }
+
+    // Verify current user is an admin of this league
+    const { data: currentUserMember } = await client
+        .from('league_members')
+        .select('role')
+        .eq('league_id', league_id)
+        .eq('user_id', user.id)
+        .single();
+
+    if (!currentUserMember || currentUserMember.role !== 'admin') {
+        return {
+            error: {
+                message: 'Only league admins can change member roles'
+            }
+        };
+    }
+
+    // Verify the target member exists and is active
+    const { data: targetMember } = await client
+        .from('league_members')
+        .select('user_id, status, role')
+        .eq('league_id', league_id)
+        .eq('user_id', member_user_id)
+        .single();
+
+    if (!targetMember || targetMember.status !== 'active') {
+        return {
+            error: {
+                message: 'Member must be active to change roles'
+            }
+        };
+    }
+
+    // Update the member's role
+    const { data, error } = await client
+        .from('league_members')
+        .update({ role })
+        .eq('league_id', league_id)
+        .eq('user_id', member_user_id)
+        .select()
+        .single();
+
+    if (error) {
+        return {
+            error: {
+                message: error.message || 'Failed to update member role'
+            }
+        };
+    }
+
+    return { data };
 }
 
 function scorePlayer(player: TeamPlayer, stats: Stats, round_settings?: RoundSettings) {

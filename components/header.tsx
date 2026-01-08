@@ -6,11 +6,12 @@ import { createClient } from '@/utils/supabase/client';
 import { GrHomeRounded } from 'react-icons/gr';
 import { HiOutlineLogout } from 'react-icons/hi';
 import { useLeague, useLeagues } from '@/app/hooks';
+import { useIsLeagueAdmin } from '@/app/hooks/use-is-admin';
 import { Tooltip } from './ui/tooltip';
 import { useParams } from 'next/navigation';
 import { useCallback, useState, useEffect } from 'react';
 import { MdAdminPanelSettings, MdAssignment, MdOutlinePeopleAlt, MdOutlineScoreboard } from 'react-icons/md';
-import { Menu, Trophy } from 'lucide-react';
+import { Menu, Trophy, UserCog } from 'lucide-react';
 import { useURLState } from '@/hooks/use-url-state';
 import { useUserStore } from '@/stores/user-store';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -21,6 +22,7 @@ export default function Header() {
     const user = useUserStore((state) => state.user);
     const { league } = useLeague(league_id as string);
     const { leagues } = useLeagues();
+    const isAdmin = useIsLeagueAdmin();
     const [isMobile, setIsMobile] = useState(false);
     const [open, setOpen] = useState(false);
 
@@ -86,7 +88,7 @@ export default function Header() {
                                     <span>Leaderboard</span>
                                 </Button>
 
-                                {league?.admin_id === user?.id && (
+                                {isAdmin && (
                                     <Button
                                         variant={tab === 'settings' ? 'solid' : 'ghost'}
                                         className="justify-start gap-3"
@@ -97,7 +99,7 @@ export default function Header() {
                                     </Button>
                                 )}
 
-                                {league?.admin_id === user?.id && (
+                                {isAdmin && (
                                     <Button
                                         variant={tab === 'teams' ? 'solid' : 'ghost'}
                                         className="justify-start gap-3"
@@ -105,6 +107,17 @@ export default function Header() {
                                     >
                                         <MdOutlinePeopleAlt className="text-xl" />
                                         <span>Teams</span>
+                                    </Button>
+                                )}
+
+                                {isAdmin && (
+                                    <Button
+                                        variant={tab === 'admin-draft' ? 'solid' : 'ghost'}
+                                        className="justify-start gap-3"
+                                        onClick={() => changeTab('admin-draft')}
+                                    >
+                                        <UserCog className="text-xl" />
+                                        <span>Admin Draft</span>
                                     </Button>
                                 )}
 
@@ -178,24 +191,40 @@ export default function Header() {
                     </Button>
                 </Tooltip>
 
-                {league?.admin_id === user?.id && (
-                    <Button
-                        className="rounded-full w-10 h-10"
-                        variant={tab === 'settings' ? 'solid' : 'ghost'}
-                        onClick={() => changeTab('settings')}
-                    >
-                        <MdAdminPanelSettings className="text-xl" />
-                    </Button>
+                {isAdmin && (
+                    <Tooltip content="Settings">
+                        <Button
+                            className="rounded-full w-10 h-10"
+                            variant={tab === 'settings' ? 'solid' : 'ghost'}
+                            onClick={() => changeTab('settings')}
+                        >
+                            <MdAdminPanelSettings className="text-xl" />
+                        </Button>
+                    </Tooltip>
                 )}
 
-                {league?.admin_id === user?.id && (
-                    <Button
-                        className="rounded-full w-10 h-10"
-                        variant={tab === 'teams' ? 'solid' : 'ghost'}
-                        onClick={() => changeTab('teams')}
-                    >
-                        <MdOutlinePeopleAlt className="text-xl" />
-                    </Button>
+                {isAdmin && (
+                    <Tooltip content="Teams">
+                        <Button
+                            className="rounded-full w-10 h-10"
+                            variant={tab === 'teams' ? 'solid' : 'ghost'}
+                            onClick={() => changeTab('teams')}
+                        >
+                            <MdOutlinePeopleAlt className="text-xl" />
+                        </Button>
+                    </Tooltip>
+                )}
+
+                {isAdmin && (
+                    <Tooltip content="Admin Draft">
+                        <Button
+                            className="rounded-full w-10 h-10"
+                            variant={tab === 'admin-draft' ? 'solid' : 'ghost'}
+                            onClick={() => changeTab('admin-draft')}
+                        >
+                            <UserCog className="text-xl" />
+                        </Button>
+                    </Tooltip>
                 )}
                 <Separator className="my-2" />
                 {leagues?.map((x) => (
