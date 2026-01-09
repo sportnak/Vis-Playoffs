@@ -12,7 +12,22 @@ import { useMemo, useEffect, useState } from 'react';
 import { mapRound } from '@/utils';
 import { useTeamStandings } from '@/hooks/use-team-standings';
 import { getRankIcon, getRankBadgeVariant, getInitials } from '@/utils/standings-utils';
-import { Trophy, Medal, Award, TrendingUp } from 'lucide-react';
+import { Trophy, Medal, Award, TrendingUp, Clock } from 'lucide-react';
+
+function formatDraftTime(seconds: number): string {
+    if (!seconds || seconds === 0) return '0s';
+
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+    return parts.join(' ');
+}
 
 interface TeamWithScores extends Team {
     seasonScore: number;
@@ -201,7 +216,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                         <CardTitle className="text-lg tracking-mono">YOUR PERFORMANCE</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div>
                                 <p className="text-sm text-muted-foreground tracking-mono">RANK</p>
                                 <p className="text-2xl font-bold">#{userStats.entry.rank}</p>
@@ -214,6 +229,12 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                                 <p className="text-sm text-muted-foreground tracking-mono">FROM LEADER</p>
                                 <p className="text-2xl font-bold text-orange-500">
                                     {userStats.pointsFromLeader > 0 ? `-${userStats.pointsFromLeader.toFixed(2)}` : '0.00'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground tracking-mono">DRAFT TIME</p>
+                                <p className="text-xl font-bold text-blue-500">
+                                    {formatDraftTime(userStats.entry.team.total_draft_time_seconds || 0)}
                                 </p>
                             </div>
                             <div>
@@ -254,6 +275,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                                         <TableHead className="tracking-mono">PLAYER</TableHead>
                                         <TableHead className="tracking-mono">TEAM</TableHead>
                                         <TableHead className="text-right tracking-mono">TOTAL POINTS</TableHead>
+                                        <TableHead className="text-right tracking-mono">DRAFT TIME</TableHead>
                                         <TableHead className="text-right tracking-mono">POOL</TableHead>
                                         <TableHead className="text-center tracking-mono">ACHIEVEMENTS</TableHead>
                                     </TableRow>
@@ -294,6 +316,14 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                                             </TableCell>
                                             <TableCell className={`text-right ${entry.rank <= 3 ? 'font-bold text-lg' : 'font-semibold'}`}>
                                                 {entry.totalPoints.toFixed(2)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-1 text-muted-foreground">
+                                                    <Clock className="h-3 w-3" />
+                                                    <span className="text-sm">
+                                                        {formatDraftTime(entry.team.total_draft_time_seconds || 0)}
+                                                    </span>
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Badge variant="outline">
@@ -374,6 +404,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                                                             <TableHead className="tracking-mono">PLAYER</TableHead>
                                                             <TableHead className="tracking-mono">TEAM</TableHead>
                                                             <TableHead className="text-right tracking-mono">POOL POINTS</TableHead>
+                                                            <TableHead className="text-right tracking-mono">DRAFT TIME</TableHead>
                                                             <TableHead className="text-right tracking-mono">TOTAL POINTS</TableHead>
                                                         </TableRow>
                                                     </TableHeader>
@@ -408,6 +439,9 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                                                                 <TableCell>{entry.team.name}</TableCell>
                                                                 <TableCell className="text-right font-semibold">
                                                                     {entry.team.poolScores[pool.id]?.toFixed(2) || '0.00'}
+                                                                </TableCell>
+                                                                <TableCell className="text-right text-muted-foreground text-sm">
+                                                                    {formatDraftTime(entry.team.total_draft_time_seconds || 0)}
                                                                 </TableCell>
                                                                 <TableCell className="text-right text-muted-foreground">
                                                                     {entry.totalPoints.toFixed(2)}
@@ -462,6 +496,7 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                                         <TableHead className="tracking-mono">PLAYER</TableHead>
                                         <TableHead className="tracking-mono">TEAM</TableHead>
                                         <TableHead className="text-right tracking-mono">ROUND POINTS</TableHead>
+                                        <TableHead className="text-right tracking-mono">DRAFT TIME</TableHead>
                                         <TableHead className="text-right tracking-mono">POOL</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -500,6 +535,9 @@ export function Leaderboard({ league_id }: { league_id: string }) {
                                             </TableCell>
                                             <TableCell className={`text-right ${entry.rank <= 3 ? 'font-bold text-lg' : 'font-semibold'}`}>
                                                 {entry.team.roundScores[selectedRoundForFilter]?.toFixed(2) ?? (0).toFixed(2)}
+                                            </TableCell>
+                                            <TableCell className="text-right text-muted-foreground text-sm">
+                                                {formatDraftTime(entry.team.total_draft_time_seconds || 0)}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Badge variant="outline">

@@ -12,7 +12,7 @@ import { MdOutlineSearch } from 'react-icons/md';
 import { toast } from '@/components/ui/toaster';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import Teams from '@/components/teams';
+import Teams, { TeamCard } from '@/components/teams';
 import { useLeagueStore } from '@/stores/league-store';
 
 const positions = [
@@ -201,6 +201,7 @@ export function AdminDraft({ leagueId, roundId }) {
                     <TabsList className="w-full">
                         <TabsTrigger value="pools" className="flex-1 text-xs">Pools</TabsTrigger>
                         <TabsTrigger value="draft" className="flex-1 text-xs">Draft</TabsTrigger>
+                        <TabsTrigger value="teams" className="flex-1 text-xs">Teams</TabsTrigger>
                     </TabsList>
                     <TabsContent value="pools" className="mt-2">
                         <div className="bg-steel border border-ui-border shadow-md rounded-md">
@@ -342,13 +343,44 @@ export function AdminDraft({ leagueId, roundId }) {
                             </div>
                         )}
                     </TabsContent>
+                    <TabsContent value="teams" className="mt-2">
+                        {!selectedPool ? (
+                            <div className="p-8 bg-steel border border-ui-border rounded-md flex justify-center">
+                                <P className="text-cool-gray tracking-mono text-xs">Select a pool first</P>
+                            </div>
+                        ) : (
+                            <div className="bg-steel border border-ui-border shadow-md rounded-md">
+                                <P className="py-2 px-4 border-b border-ui-border font-light font-roboto-mono tracking-[0.025rem] text-sm">
+                                    ALL TEAMS
+                                </P>
+                                <div className="p-2 space-y-3">
+                                    {teams[selectedPool.id]?.map(team => (
+                                        <div key={team.id} className="border border-ui-border rounded-md bg-polar-night/30">
+                                            <div className="px-3 py-2 border-b border-ui-border">
+                                                <P className="font-semibold font-roboto-mono text-xs">{team.name}</P>
+                                            </div>
+                                            <div className="p-3">
+                                                <TeamCard
+                                                    showScore={false}
+                                                    team={team}
+                                                    round={currentRound}
+                                                    pool={selectedPool}
+                                                    memberId={team.member_id}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </TabsContent>
                 </Tabs>
             </div>
         );
     }
 
     return (
-        <div className="w-full mx-auto">
+        <div className="w-full mx-auto space-y-6">
             {DialogComponent}
 
             <div className="flex w-full items-start gap-8">
@@ -509,6 +541,36 @@ export function AdminDraft({ leagueId, roundId }) {
                     )}
                 </div>
             </div>
+
+            {selectedPool && teams[selectedPool.id] && teams[selectedPool.id].length > 0 && (
+                <div className="w-full">
+                    <div className="bg-steel border border-ui-border shadow-md rounded-md">
+                        <P className="py-2 px-4 border-b border-ui-border font-light font-roboto-mono tracking-[0.025rem] text-sm">
+                            ALL TEAMS
+                        </P>
+                        <div className="p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {teams[selectedPool.id].map(team => (
+                                    <div key={team.id} className="border border-ui-border rounded-md bg-polar-night/30 overflow-hidden">
+                                        <div className="px-4 py-3 border-b border-ui-border bg-steel/50">
+                                            <P className="font-semibold font-roboto-mono text-sm">{team.name}</P>
+                                        </div>
+                                        <div className="p-4">
+                                            <TeamCard
+                                                showScore={false}
+                                                team={team}
+                                                round={currentRound}
+                                                pool={selectedPool}
+                                                memberId={team.member_id}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

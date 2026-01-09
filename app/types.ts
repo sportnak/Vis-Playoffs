@@ -62,6 +62,7 @@ export interface Team {
     pool_id: string,
     member_id: string,
     team_players: TeamPlayer[]
+    total_draft_time_seconds?: number
 }
 
 export interface TeamPlayer {

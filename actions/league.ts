@@ -759,6 +759,39 @@ function isPickValid(player: Player, round_settings: RoundSettings, team: TeamPl
     return false;
 }
 
+function calculateDraftTimeForTeam(teamPlayers: any[], allPoolPicks: any[]): number {
+    if (!teamPlayers || teamPlayers.length === 0) return 0;
+
+    // Create a map of pick_number to created_at for quick lookup
+    const pickTimeMap = new Map<number, Date>();
+    allPoolPicks.forEach(pick => {
+        if (pick.pick_number && pick.created_at) {
+            pickTimeMap.set(pick.pick_number, new Date(pick.created_at));
+        }
+    });
+
+    let totalSeconds = 0;
+
+    for (const currentPick of teamPlayers) {
+        if (!currentPick.pick_number || !currentPick.created_at || currentPick.pick_number === 1) {
+            continue;
+        }
+
+        const currentTime = new Date(currentPick.created_at);
+        const previousPickNumber = currentPick.pick_number - 1;
+        const previousTime = pickTimeMap.get(previousPickNumber);
+
+        if (previousTime) {
+            const diffSeconds = (currentTime.getTime() - previousTime.getTime()) / 1000;
+            if (diffSeconds > 0) {
+                totalSeconds += diffSeconds;
+            }
+        }
+    }
+
+    return Math.round(totalSeconds);
+}
+
 export async function loadPoints({ league_id, round_id }: { round_id?: string; league_id: string }) {
     const client = await createClient();
     const request = client.from('round_settings').select('*').eq('league_id', league_id).eq('round_id', round_id);
@@ -777,8 +810,24 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
 
     const { data: teamsWithPlayers } = await client
         .from('team')
-        .select('*, players:team_players(*, player(*))')
+        .select('*, players:team_players(*, player(*), created_at, pick_number, pool_id)')
         .eq('league_id', league_id);
+
+    // Fetch all team_players for draft time calculation
+    const pool_ids = pools.data.map(p => p.id);
+    const { data: allTeamPlayers } = await client
+        .from('team_players')
+        .select('pick_number, created_at, pool_id, team_id')
+        .in('pool_id', pool_ids);
+
+    // Group picks by pool for efficient lookup
+    const picksByPool = (allTeamPlayers || []).reduce((acc, pick) => {
+        if (!acc[pick.pool_id]) {
+            acc[pick.pool_id] = [];
+        }
+        acc[pick.pool_id].push(pick);
+        return acc;
+    }, {} as Record<string, any[]>);
 
     const player_ids = teamsWithPlayers.map((x) => x.players.map((x) => x.player.id)).flat();
     const { data: stats } = await client.from('stats').select('*').in('player_id', player_ids);
@@ -847,11 +896,22 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
                 }
             }
 
+            // Calculate total draft time for this team
+            let totalDraftTimeSeconds = 0;
+            const teamPoolIds = new Set(team.team_players.map(p => p.pool_id).filter(Boolean));
+
+            for (const poolId of teamPoolIds) {
+                const teamPicksInPool = team.team_players.filter(p => p.pool_id === poolId);
+                const allPicksInPool = picksByPool[poolId] || [];
+                totalDraftTimeSeconds += calculateDraftTimeForTeam(teamPicksInPool, allPicksInPool);
+            }
+
             return {
                 ...team,
                 roundScores,
                 poolScores,
-                seasonScore: parseFloat(seasonScore.toFixed(2))
+                seasonScore: parseFloat(seasonScore.toFixed(2)),
+                total_draft_time_seconds: totalDraftTimeSeconds
             };
         });
 
