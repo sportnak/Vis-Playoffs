@@ -504,6 +504,21 @@ export async function loadNFLTeams() {
     return response;
 }
 
+export async function loadNFLTeamsForRound(round_id: string) {
+    const client = await createClient();
+    const nfl_round = await client.from('nfl_rounds').select('*').eq('id', round_id);
+    if (!nfl_round.data?.[0]) {
+        return { data: [] };
+    }
+    const games = await client.from('games').select('*').eq('nfl_round_id', nfl_round.data[0].id);
+    const teams = await client
+        .from('nfl_team')
+        .select('*')
+        .in('id', games.data.map((x) => [x.nfl_team_1, x.nfl_team_2]).flat())
+        .order('name', { ascending: true });
+    return teams;
+}
+
 export async function loadNFLPlayers(
     query: { drafted?: 'both' | 'drafted' | 'undrafted'; pos: string; name?: string; team_ids?: string[]; round_id: string; page?: number },
     pool_id: string,

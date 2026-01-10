@@ -4,6 +4,7 @@ import {
     loadMember,
     loadNFLPlayers,
     loadNFLTeams,
+    loadNFLTeamsForRound,
     loadPool,
     loadTeam,
     updateName
@@ -25,6 +26,22 @@ export function useNFLTeams() {
     useEffect(() => {
         load();
     }, []);
+
+    return { nflTeams, load };
+}
+
+export function useNFLTeamsForRound(round_id: string) {
+    const [nflTeams, setNFLTeams] = useState<any[]>([]);
+
+    const load = useCallback(async () => {
+        if (!round_id) return;
+        const response = await loadNFLTeamsForRound(round_id);
+        setNFLTeams(response.data || []);
+    }, [round_id]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
 
     return { nflTeams, load };
 }

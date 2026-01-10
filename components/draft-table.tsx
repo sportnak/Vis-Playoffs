@@ -1,5 +1,5 @@
 'use client';
-import { useNFLPlayers } from '@/app/leagues/[league_id]/draft/hooks';
+import { useNFLPlayers, useNFLTeamsForRound } from '@/app/leagues/[league_id]/draft/hooks';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from './ui/toaster';
 import { Checkbox } from './ui/checkbox';
@@ -54,9 +54,11 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
         pos: '',
         round_id: round_id?.toString() || '',
         name: '',
-        team_ids: [],
+        team_ids: [] as string[],
         page: 0
     });
+
+    const { nflTeams } = useNFLTeamsForRound(round_id?.toString() || '');
     const handleChangeDrafted = useCallback((value: 'both' | 'drafted' | 'undrafted') => {
         setQuery((x) => ({ ...x, drafted: value, page: 0 }));
     }, []);
@@ -69,6 +71,14 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
         setQuery((x) => ({
             ...x,
             pos: value,
+            page: 0
+        }));
+    }, []);
+
+    const handleTeamChange = useCallback((value: string) => {
+        setQuery((x) => ({
+            ...x,
+            team_ids: value === 'ALL' ? [] : [value],
             page: 0
         }));
     }, []);
@@ -214,6 +224,21 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                 ))}
                             </SelectContent>
                         </Select>
+                        {!isHiddenUser && (
+                            <Select value={query.team_ids[0] || 'ALL'} onValueChange={handleTeamChange}>
+                                <SelectTrigger className={isMobile ? 'w-[100px] h-8 text-xs' : 'w-[150px]'}>
+                                    <SelectValue placeholder="TEAM..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">ALL TEAMS</SelectItem>
+                                    {nflTeams.map((team) => (
+                                        <SelectItem key={team.id} value={team.id}>
+                                            {team.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                         {!isHiddenUser && (
                             <RadioGroup value={query.drafted} onValueChange={handleChangeDrafted} className="flex items-center gap-3">
                                 <div className="flex items-center gap-1.5">
