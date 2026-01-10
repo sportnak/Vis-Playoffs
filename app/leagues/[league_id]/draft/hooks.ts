@@ -30,7 +30,7 @@ export function useNFLTeams() {
 }
 
 export function useNFLPlayers(
-    query: { drafted?: boolean; name?: string; pos: string; team_ids?: string[]; round_id: string },
+    query: { drafted?: 'both' | 'drafted' | 'undrafted'; name?: string; pos: string; team_ids?: string[]; round_id: string; page?: number },
     pool_id: string,
     league_id: string
 ) {
@@ -43,7 +43,7 @@ export function useNFLPlayers(
         }
         const response = await loadNFLPlayers(query, pool_id, league_id);
         const data = response.data;
-        if (query.drafted) {
+        if (query.drafted === 'drafted') {
             data?.sort((a, b) => (b.team_players?.[0]?.pick_number ?? 0) - (a.team_players?.[0]?.pick_number ?? 0));
         }
         setNFLPlayers(data);

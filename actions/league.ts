@@ -248,7 +248,6 @@ export async function loadRounds(league_id: string) {
     const response = await client
         .from('nfl_rounds')
         .select('*, round_settings(*), pools(*)')
-        .gt('round', 0)
         .eq('pools.league_id', league_id)
         .eq('round_settings.league_id', league_id);
     return response;
@@ -506,7 +505,7 @@ export async function loadNFLTeams() {
 }
 
 export async function loadNFLPlayers(
-    query: { drafted?: boolean; pos: string; name?: string; team_ids?: string[]; round_id: string },
+    query: { drafted?: 'both' | 'drafted' | 'undrafted'; pos: string; name?: string; team_ids?: string[]; round_id: string; page?: number },
     pool_id: string,
     league_id: string
 ) {
@@ -537,8 +536,12 @@ export async function loadNFLPlayers(
         request.in('nfl_team_id', query.team_ids);
     }
 
-    if (!query.name?.length && query.drafted) {
-        request.not('team_players', 'is', null)
+    if (!query.name?.length && query.drafted === 'drafted') {
+        request.not('team_players', 'is', null);
+    }
+
+    if (!query.name?.length && query.drafted === 'undrafted') {
+        request.is('team_players', null);
     }
 
     // Position filtering using position enum
@@ -566,10 +569,13 @@ export async function loadNFLPlayers(
         request.in('position', ['QB', 'RB', 'WR', 'TE']);
     }
 
+    const page = query.page ?? 0;
+    const pageSize = 20;
+
     request
         .order('pick_number', { referencedTable: 'team_players', ascending: false })
         .order('depth_rank', { ascending: true })
-        .limit(50);
+        .range(page * pageSize, (page + 1) * pageSize - 1);
     const response = await request;
     return response;
 }

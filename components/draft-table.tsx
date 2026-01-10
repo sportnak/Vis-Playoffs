@@ -13,8 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
 import { H2, P } from './ui/text';
 import { useUIStore } from '@/stores/ui-store';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLeagueStore } from '@/stores/league-store';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Label } from './ui/label';
 
 const useIsMobile = () => {
     const [isMobile, setIsMobile] = useState(false);
@@ -40,32 +42,43 @@ const positions = [
 export default function Draft({ pool, team, teams, member, draftPlayer, refreshDraft }) {
     const round_id = useUIStore((state) => state.round_id);
     const isMobile = useIsMobile();
-    const league = useLeagueStore()
+    const league = useLeagueStore();
+    const isHiddenUser = member?.user_id === '8c438cf9-ad89-4964-8cfe-cf897eb73ed3';
 
     const teamMap = useMemo(() => teams.reduce((acc, curr) => ({
         ...acc,
         [curr.id]: curr.name
     }), {}), [teams])
     const [query, setQuery] = useState({
-        drafted: undefined,
+        drafted: 'both' as 'both' | 'drafted' | 'undrafted',
         pos: '',
         round_id: round_id?.toString() || '',
         name: '',
-        team_ids: []
+        team_ids: [],
+        page: 0
     });
-    const handleChangeDrafted = useCallback(() => {
-        setQuery((x) => ({ ...x, drafted: !x.drafted }));
+    const handleChangeDrafted = useCallback((value: 'both' | 'drafted' | 'undrafted') => {
+        setQuery((x) => ({ ...x, drafted: value, page: 0 }));
     }, []);
 
     const handleNameChange = useCallback((e) => {
-        setQuery((x) => ({ ...x, name: e.target.value }));
+        setQuery((x) => ({ ...x, name: e.target.value, page: 0 }));
     }, []);
 
     const handlePosChange = useCallback((value: string) => {
         setQuery((x) => ({
             ...x,
-            pos: value
+            pos: value,
+            page: 0
         }));
+    }, []);
+
+    const handleNextPage = useCallback(() => {
+        setQuery((x) => ({ ...x, page: x.page + 1 }));
+    }, []);
+
+    const handlePrevPage = useCallback(() => {
+        setQuery((x) => ({ ...x, page: Math.max(0, x.page - 1) }));
     }, []);
 
     const { nflPlayers, load } = useNFLPlayers(query, pool?.id, pool?.league_id);
@@ -136,9 +149,56 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                 </DialogContent>
             </Dialog>
             <div className="flex flex-col">
-                <P className={`py-2 px-4 border-b border-ui-border font-light font-roboto-mono tracking-[0.025rem] ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    PLAYERS
-                </P>
+                <div className="flex items-center justify-between py-2 px-4 border-b border-ui-border">
+                    <P className={`font-light font-roboto-mono tracking-[0.025rem] ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        PLAYERS
+                        {pool && currTurn && (
+                            <span className="text-cool-gray">
+                                {' '}(
+                                {pool.status === 'complete'
+                                    ? 'Draft Complete'
+                                    : pool.current === team?.id
+                                        ? "Your Turn"
+                                        : `${currTurn?.name}'s Turn`}
+                                )
+                            </span>
+                        )}
+                    </P>
+                </div>
+                {nflPlayers && nflPlayers.length > 0 && !isHiddenUser && (
+                    <div className={`flex items-center justify-between border-b border-ui-border ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>
+                        {pool?.draft_order ? (
+                            <P className={`text-xs text-cool-gray ${isMobile ? 'hidden' : ''}`}>
+                                Order: {pool.draft_order.map((id: string) => teamMap[id]).join(', ')}
+                            </P>
+                        ) : (
+                            <div />
+                        )}
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handlePrevPage}
+                                disabled={query.page === 0}
+                                className={`font-roboto-mono tracking-button ${isMobile ? 'h-7 w-7 p-0' : 'h-8 w-8 p-0'}`}
+                            >
+                                <ChevronLeft className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
+                            </Button>
+                            <div className={`mt-0! font-light ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                                Page {query.page + 1}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleNextPage}
+                                disabled={nflPlayers.length < 20}
+                                className={`font-roboto-mono tracking-button ${isMobile ? 'h-7 w-7 p-0' : 'h-8 w-8 p-0'}`}
+                            >
+                                <ChevronRight className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
+                            </Button>
+                        </div>
+                    </div>
+                )}
                 <div className={`p-2 md:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 md:mb-5 max-w-full gap-2 md:gap-4`}>
 
                     <div className="flex flex-wrap gap-2 md:gap-3 items-center w-full">
@@ -154,13 +214,22 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                 ))}
                             </SelectContent>
                         </Select>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                                checked={query.drafted}
-                                onCheckedChange={handleChangeDrafted}
-                            />
-                            <span className={`text-frost ${isMobile ? 'text-xs' : 'text-sm'}`}>Drafted</span>
-                        </label>
+                        {!isHiddenUser && (
+                            <RadioGroup value={query.drafted} onValueChange={handleChangeDrafted} className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5">
+                                    <RadioGroupItem value="both" id="both" />
+                                    <Label htmlFor="both" className={`text-frost cursor-pointer ${isMobile ? 'text-xs' : 'text-sm'}`}>Both</Label>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <RadioGroupItem value="drafted" id="drafted" />
+                                    <Label htmlFor="drafted" className={`text-frost cursor-pointer ${isMobile ? 'text-xs' : 'text-sm'}`}>Drafted</Label>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <RadioGroupItem value="undrafted" id="undrafted" />
+                                    <Label htmlFor="undrafted" className={`text-frost cursor-pointer ${isMobile ? 'text-xs' : 'text-sm'}`}>Undrafted</Label>
+                                </div>
+                            </RadioGroup>
+                        )}
                         <div className={`relative flex-1 ${isMobile ? 'min-w-[140px]' : 'w-[300px]'}`}>
                             <Input
                                 placeholder="Search..."
@@ -172,19 +241,6 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                         </div>
                     </div>
                 </div>
-                {pool && currTurn && (
-                    <div className={`w-full shadow-sm rounded-md bg-graphite mb-3 md:mb-5 flex justify-center items-center gap-2 flex-col ${isMobile ? 'p-2' : 'p-4'}`}>
-                        <P className={`font-light text-center ${isMobile ? 'text-xs' : ''}`}>
-                            {pool.status === 'complete'
-                                ? 'Drafting complete!'
-                                : pool.current === team?.id
-                                    ? "It's your turn to pick!"
-                                    : `Waiting on ${currTurn?.name}`}
-                        </P>
-                        <P className="text-xs">Draft Order:{pool.draft_order.map(id => teamMap[id]).join(', ')}</P>
-                    </div>
-                )}
-
                 {!nflPlayers ? (
                     <div className="p-4 flex justify-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan"></div>
@@ -236,15 +292,15 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                                                     <span className={`text-cool-gray ${isMobile ? 'text-xs' : ''}`}>Drafted</span>
                                                 ) : (
                                                     <Button
-                                                        variant="ghost"
+                                                        variant="default"
                                                         size="sm"
-                                                        className={`font-roboto-mono tracking-button text-white hover:bg-neo-green rounded-full ${isMobile ? 'h-6 w-6 p-0' : 'h-8 w-8'}`}
+                                                        className={`font-roboto-mono tracking-button}`}
                                                         onClick={() => {
                                                             setPlayerConfirmation(player);
                                                             setDialogOpen(true);
                                                         }}
                                                     >
-                                                        <CheckCircle height={isMobile ? '16px' : '24px'} width={isMobile ? '16px' : '24px'} />
+                                                        DRAFT
                                                     </Button>
                                                 )}
                                             </TableCell>
