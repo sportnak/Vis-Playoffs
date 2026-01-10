@@ -59,15 +59,20 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
     });
 
     const { nflTeams } = useNFLTeamsForRound(round_id?.toString() || '');
+    const [isLoading, setIsLoading] = useState(false);
+
     const handleChangeDrafted = useCallback((value: 'both' | 'drafted' | 'undrafted') => {
+        setIsLoading(true);
         setQuery((x) => ({ ...x, drafted: value, page: 0 }));
     }, []);
 
     const handleNameChange = useCallback((e) => {
+        setIsLoading(true);
         setQuery((x) => ({ ...x, name: e.target.value, page: 0 }));
     }, []);
 
     const handlePosChange = useCallback((value: string) => {
+        setIsLoading(true);
         setQuery((x) => ({
             ...x,
             pos: value,
@@ -76,6 +81,7 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
     }, []);
 
     const handleTeamChange = useCallback((value: string) => {
+        setIsLoading(true);
         setQuery((x) => ({
             ...x,
             team_ids: value === 'ALL' ? [] : [value],
@@ -84,10 +90,12 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
     }, []);
 
     const handleNextPage = useCallback(() => {
+        setIsLoading(true);
         setQuery((x) => ({ ...x, page: x.page + 1 }));
     }, []);
 
     const handlePrevPage = useCallback(() => {
+        setIsLoading(true);
         setQuery((x) => ({ ...x, page: Math.max(0, x.page - 1) }));
     }, []);
 
@@ -98,6 +106,12 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
             setQuery((x) => ({ ...x, round_id: round_id.toString() }));
         }
     }, [round_id]);
+
+    useEffect(() => {
+        if (nflPlayers !== undefined) {
+            setIsLoading(false);
+        }
+    }, [nflPlayers]);
 
     const [playerConfirmation, setPlayerConfirmation] = useState<any>();
 
@@ -266,14 +280,14 @@ export default function Draft({ pool, team, teams, member, draftPlayer, refreshD
                         </div>
                     </div>
                 </div>
-                {!nflPlayers ? (
+                {!nflPlayers || isLoading ? (
                     <div className="p-4 flex justify-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan"></div>
                     </div>
                 ) : !nflPlayers.length ? (
                     <div className="p-4 flex justify-center">
                         <P className="font-light">
-                            No players drafted yet.
+                            No players found.
                         </P>
                     </div>
                 ) : (
