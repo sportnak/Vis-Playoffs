@@ -77,7 +77,7 @@ export function AdminDraft({ leagueId, roundId }) {
         searchDebounceRef.current = setTimeout(async () => {
             const response = await loadNFLPlayers(
                 {
-                    drafted: false,
+                    drafted: 'undrafted',
                     pos: positionFilter === 'ALL' ? 'SF' : positionFilter,
                     name: searchQuery,
                     round_id: roundId
