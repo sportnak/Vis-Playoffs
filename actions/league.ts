@@ -919,7 +919,7 @@ export async function loadPoints({ league_id, round_id }: { round_id?: string; l
 
             // Calculate total draft time for this team
             let totalDraftTimeSeconds = 0;
-            const teamPoolIds = new Set(team.team_players.map(p => p.pool_id).filter(Boolean));
+            const teamPoolIds = new Set(team.team_players.map(p => p.pool_id).filter(Boolean) as number[]);
 
             for (const poolId of teamPoolIds) {
                 const teamPicksInPool = team.team_players.filter(p => p.pool_id === poolId);
