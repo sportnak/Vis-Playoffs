@@ -5,6 +5,7 @@ import { Tooltip } from './ui/tooltip';
 import { Button } from './ui/button';
 import { P } from './ui/text';
 import { getPlayerPosition } from '@/utils/player-position';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 export default function Teams({
     teams,
@@ -166,52 +167,70 @@ function PlayerItem({
     showScore?: boolean;
 }) {
     const stats = (player as any)?.stats;
-    const [open, setOpen] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+
+    const handlePlayerClick = () => {
+        if (player && showScore) {
+            setModalOpen(true);
+        }
+    };
+
     return (
-        <div
-            className="w-full flex justify-between items-center"
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-            onClick={() => setOpen((op) => !op)}
-        >
-            <div className="flex items-center gap-2">
-                <div
-                    className="tracking-mono h-10 w-10 rounded-full flex items-center justify-start text-xs"
-                >
-                    {position}
-                </div>
-                {player ? (
-                    <>
-                        <span className="text-xs text-left text-frost">
-                            {player.player.name}
-                        </span>
-                        {dropPlayer && <Button size="sm" onClick={() => dropPlayer(player.player.id)}>X</Button>}
-                    </>
-                ) : (
-                    <div>
-                        <span className="tracking-mono text-cool-gray text-xs font-light">
-                            EMPTY
-                        </span>
+        <>
+            <div
+                className={`w-full flex justify-between items-center ${player && showScore ? 'cursor-pointer hover:bg-ui-border/30 rounded px-2 py-1 -mx-2' : ''}`}
+                onClick={handlePlayerClick}
+            >
+                <div className="flex items-center gap-2">
+                    <div
+                        className="tracking-mono h-10 w-10 rounded-full flex items-center justify-start text-xs"
+                    >
+                        {position}
                     </div>
+                    {player ? (
+                        <>
+                            <span className="text-xs text-left text-frost">
+                                {player.player.name}
+                            </span>
+                            {dropPlayer && <Button size="sm" onClick={() => dropPlayer(player.player.id)}>X</Button>}
+                        </>
+                    ) : (
+                        <div>
+                            <span className="tracking-mono text-cool-gray text-xs font-light">
+                                EMPTY
+                            </span>
+                        </div>
+                    )}
+                </div>
+                {showScore && player && (
+                    <span
+                        className={`text-xs font-bold ${(player as any)?.stats == null
+                            ? 'text-cool-gray'
+                            : player.score < 5
+                                ? 'text-semantic-danger'
+                                : player.score < 10
+                                    ? 'text-semantic-warning'
+                                    : player.score < 20
+                                        ? 'text-semantic-good'
+                                        : 'text-cyan'
+                            }`}
+                    >
+                        {player?.score} pts
+                    </span>
                 )}
             </div>
-            {showScore && player && (
-                <span
-                    className={`text-xs font-bold ${(player as any)?.stats == null
-                        ? 'text-cool-gray'
-                        : player.score < 5
-                            ? 'text-semantic-danger'
-                            : player.score < 10
-                                ? 'text-semantic-warning'
-                                : player.score < 20
-                                    ? 'text-semantic-good'
-                                    : 'text-cyan'
-                        }`}
-                >
-                    {player?.score} pts
-                </span>
+
+            {player && showScore && (
+                <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>{player.player.name}</DialogTitle>
+                        </DialogHeader>
+                        <PlayerStatsModal player={player} />
+                    </DialogContent>
+                </Dialog>
             )}
-        </div>
+        </>
     );
 }
 const wr_stats = ['rec', 'rec_yds', 'rec_td', 'fum', 'rush_att', 'rush_yds', 'rush_td'];
@@ -245,30 +264,65 @@ export function mapStatName(stat) {
             return stat;
     }
 }
-function Points({ player }: { player: TeamPlayer }) {
+function PlayerStatsModal({ player }: { player: TeamPlayer }) {
     const stats = (player as any)?.stats;
     const position = getPlayerPosition(player.player);
     const stat_columns = position === 'QB' ? qb_stats : position === 'RB' ? rb_stats : wr_stats;
+
     return (
-        <div className="text-black p-4">
-            <h4 className="text-sm mb-2 font-bold">
-                POINTS: {player.score}
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-                {stat_columns?.map((stat) => (
-                    <div className="flex flex-col items-start gap-0.5" key={stat}>
-                        <span className="text-cool-gray text-xs">
-                            {mapStatName(stat).toUpperCase()}
-                        </span>
-                        <span className="text-xs font-bold">
-                            {stat === 'pass_att'
-                                ? `${stats['comp']}/${stats[stat]}`
-                                : stat === 'rec'
-                                    ? `${stats[stat]}/${stats['tar']}`
-                                    : (stats[stat] ?? 0)}
-                        </span>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-xs text-cool-gray">POSITION</p>
+                    <p className="text-sm font-semibold">{position}</p>
+                </div>
+                <div>
+                    <p className="text-xs text-cool-gray">TEAM</p>
+                    <p className="text-sm font-semibold">{player.player.nfl_team?.name || 'N/A'}</p>
+                </div>
+                <div>
+                    <p className="text-xs text-cool-gray">TOTAL POINTS</p>
+                    <p className={`text-lg font-bold ${
+                        !stats
+                            ? 'text-cool-gray'
+                            : player.score < 5
+                                ? 'text-semantic-danger'
+                                : player.score < 10
+                                    ? 'text-semantic-warning'
+                                    : player.score < 20
+                                        ? 'text-semantic-good'
+                                        : 'text-cyan'
+                    }`}>
+                        {player.score.toFixed(2)}
+                    </p>
+                </div>
+            </div>
+
+            <div className="border-t border-ui-border pt-4">
+                <h4 className="text-xs text-cool-gray mb-3 tracking-mono">GAME STATISTICS</h4>
+                {stats ? (
+                    <div className="grid grid-cols-2 gap-4">
+                        {stat_columns?.map((stat) => (
+                            <div className="flex flex-col items-start gap-1" key={stat}>
+                                <span className="text-cool-gray text-xs tracking-mono">
+                                    {mapStatName(stat).toUpperCase()}
+                                </span>
+                                <span className="text-sm font-bold text-frost">
+                                    {stat === 'pass_att'
+                                        ? `${stats['comp']}/${stats[stat]}`
+                                        : stat === 'rec'
+                                            ? `${stats[stat]}/${stats['tar']}`
+                                            : (stats[stat] ?? 0)}
+                                </span>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                ) : (
+                    <div className="text-center py-8">
+                        <p className="text-cool-gray text-sm">No stats available yet</p>
+                        <p className="text-cool-gray text-xs mt-1">Game has not been played or stats not recorded</p>
+                    </div>
+                )}
             </div>
         </div>
     );

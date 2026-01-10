@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePoints } from '@/app/leagues/[league_id]/hooks';
 import { createClient } from '@/utils/supabase/client';
 import { useUIStore } from '@/stores/ui-store';
@@ -18,6 +18,7 @@ export function useTeamStandings(league_id: string, round_id: string | null) {
     const league = useLeagueStore((state) => state.currentLeague);
     const member = useUserStore((state) => state.member);
     const currentUIRoundId = useUIStore((state) => state.round_id);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const currentRound = useMemo(() => {
         const targetRoundId = round_id || currentUIRoundId;
@@ -28,13 +29,28 @@ export function useTeamStandings(league_id: string, round_id: string | null) {
 
     // Real-time updates for stats changes
     useEffect(() => {
-        const handleStatsChange = () => {
-            refreshTeam();
+        let debounceTimer: NodeJS.Timeout | null = null;
+
+        const handleStatsChange = async () => {
+            console.log('Stats changed, debouncing refresh...');
+            setIsRefreshing(true);
+
+            // Clear existing timer
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+            }
+
+            // Set new timer to refresh after 1 second of no updates
+            debounceTimer = setTimeout(async () => {
+                console.log('Refreshing team standings...');
+                await refreshTeam();
+                setTimeout(() => setIsRefreshing(false), 500);
+            }, 1000);
         };
 
         const client = createClient();
         const channel = client.channel('supabase_realtime');
-
+        console.log("Subscribing to stats changes...");
         channel
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stats' }, handleStatsChange)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stats' }, handleStatsChange)
@@ -42,6 +58,10 @@ export function useTeamStandings(league_id: string, round_id: string | null) {
             .subscribe();
 
         return () => {
+            console.log('Unsubscribing from stats changes...');
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+            }
             client.removeChannel(channel);
         };
     }, [refreshTeam]);
@@ -60,5 +80,6 @@ export function useTeamStandings(league_id: string, round_id: string | null) {
         league,
         member,
         refreshTeam,
+        isRefreshing,
     };
 }
