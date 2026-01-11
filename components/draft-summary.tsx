@@ -266,32 +266,7 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
             const betterThan = adpRange.filter((x) => x.value < item.value).length;
             const percentileRank = adpRange.length > 1 ? (betterThan / (adpRange.length - 1)) * 100 : null;
 
-            // Generate 9-bar ASCII chart with current player in middle
-            // Shows the 4 players drafted before and 4 after in draft order
-            let relativeChart = null;
-            // Sort all players by ADP
-            const sortedByADP = [...summary].sort((a, b) => a.adp - b.adp);
-            const currentIndex = sortedByADP.findIndex((x) => x.playerId === item.playerId);
-
-            if (currentIndex !== -1) {
-                const bars = [];
-                for (let i = 0; i < 9; i++) {
-                    const dataIndex = currentIndex - 4 + i;
-                    if (dataIndex >= 0 && dataIndex < sortedByADP.length) {
-                        const player = sortedByADP[dataIndex];
-                        if (player.value === null) {
-                            bars.push('_');
-                        } else {
-                            bars.push(i === 4 ? '█' : '▄');
-                        }
-                    } else {
-                        bars.push(' ');
-                    }
-                }
-                relativeChart = bars.join('');
-            }
-
-            return { ...item, zScore, stars, percentileRank, relativeChart };
+            return { ...item, zScore, stars, percentileRank, relativeChart: null };
         });
     }, [summary, valueStats]);
 
@@ -325,6 +300,35 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                 comparison = b.scaledValue - a.scaledValue;
             }
             return sortDir === 'asc' ? comparison : -comparison;
+        });
+
+        // Generate relativeChart based on filtered and sorted data
+        // Sort filtered players by ADP for the chart calculation
+        const sortedByADP = [...filtered].sort((a, b) => a.adp - b.adp);
+
+        filtered = filtered.map((item) => {
+            let relativeChart = null;
+            const currentIndex = sortedByADP.findIndex((x) => x.playerId === item.playerId);
+
+            if (currentIndex !== -1) {
+                const bars = [];
+                for (let i = 0; i < 9; i++) {
+                    const dataIndex = currentIndex - 4 + i;
+                    if (dataIndex >= 0 && dataIndex < sortedByADP.length) {
+                        const player = sortedByADP[dataIndex];
+                        if (player.value === null) {
+                            bars.push('_');
+                        } else {
+                            bars.push(i === 4 ? '█' : '▄');
+                        }
+                    } else {
+                        bars.push(' ');
+                    }
+                }
+                relativeChart = bars.join('');
+            }
+
+            return { ...item, relativeChart };
         });
 
         return filtered;

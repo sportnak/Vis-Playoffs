@@ -1,6 +1,12 @@
 import { Player } from "./types";
 
 export function mapPos(player: Player) {
+    // Prefer the new position field if available
+    if (player.position) {
+        return player.position;
+    }
+
+    // Fallback to legacy boolean fields
     if (player.is_qb) {
         return 'QB'
     }
@@ -13,4 +19,6 @@ export function mapPos(player: Player) {
     if (player.is_te) {
         return 'TE'
     }
+
+    return 'UNKNOWN';
 }
