@@ -116,6 +116,10 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
     }, [teams]);
 
     const summary = useMemo(() => {
+        if (!Array.isArray(teams) || !Array.isArray(pools)) {
+            return [];
+        }
+
         let pool_ids = [];
         const activeRoundId = roundFilter || round_id;
 
@@ -388,6 +392,9 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
     };
 
     const positions = useMemo(() => {
+        if (!Array.isArray(summary)) {
+            return ['all'];
+        }
         const posSet = new Set(summary.map((x) => x.position));
         return ['all', ...Array.from(posSet).sort()];
     }, [summary]);
