@@ -99,18 +99,20 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                         const avg = pointsBack / yetToPlay.length;
                         const roundScore =
                             pool && team.poolScores[pool?.id] ? parseFloat(team.poolScores[pool?.id].toFixed(2)) : 0;
+                        const playersWithStats = team.team_players.filter((x) => x.pool_id === pool?.id && x.stats != null);
+                        const pointsPerPlayer = playersWithStats.length > 0 ? (roundScore / playersWithStats.length) : 0;
+                        const remainingPlayers = yetToPlay.length;
                         return (
                             <div
                                 key={team.id}
-                                className={`bg-steel p-5 shadow-sm rounded-md border ${
-                                    rank === 1
+                                className={`bg-steel p-5 shadow-sm rounded-md border ${rank === 1
                                         ? 'border-yellow-500 bg-yellow-500/5'
                                         : rank === 2
-                                        ? 'border-gray-400 bg-gray-400/5'
-                                        : rank === 3
-                                        ? 'border-amber-700 bg-amber-700/5'
-                                        : 'border-ui-border'
-                                } ${teamMember?.id === member?.id ? 'ring-2 ring-frost/30' : ''}`}
+                                            ? 'border-gray-400 bg-gray-400/5'
+                                            : rank === 3
+                                                ? 'border-amber-700 bg-amber-700/5'
+                                                : 'border-ui-border'
+                                    } ${teamMember?.id === member?.id ? 'ring-2 ring-frost/30' : ''}`}
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
@@ -122,15 +124,15 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                                     <p className={`text-sm font-bold ${rank <= 3 ? 'text-lg' : ''}`}>{team.seasonScore}</p>
                                 </div>
 
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Avatar className="h-6 w-6">
-                                        <AvatarFallback className="text-xs">
-                                            {getInitials(teamMember?.email || '??')}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                        {teamMember?.email || 'Unknown'}
-                                    </p>
+                                <div className="flex items-center gap-3 mb-4 text-[10px] text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                        <span>PPP:</span>
+                                        <span className="font-medium">{pointsPerPlayer.toFixed(1)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <span>REM:</span>
+                                        <span className="font-medium">{remainingPlayers}</span>
+                                    </div>
                                 </div>
 
                                 <div className="mb-4 flex items-center justify-between">
@@ -152,7 +154,7 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                                     memberId={member?.id}
                                 />
 
-                                <div className="flex justify-between items-center mt-4 pt-4 border-t border-ui-border">
+                                <div className="flex justify-between items-center mt-3 pt-3 border-t border-ui-border">
                                     <p className="text-xs tracking-mono">ROUND SCORE</p>
                                     <p className="text-sm font-bold">{roundScore}</p>
                                 </div>
