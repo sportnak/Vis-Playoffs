@@ -73,6 +73,8 @@ export interface TeamPlayer {
     team: Team
     player: Player
     score: number
+    pick_number?: number
+    stats?: Stats
 }
 
 export interface Pool {

@@ -85,6 +85,7 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
     const [posFilter, setPosFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [roundFilter, setRoundFilter] = useState<string>(round_id || '');
 
     const pools_by_round = useMemo(() => {
         return pools.reduce(
@@ -116,10 +117,12 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
 
     const summary = useMemo(() => {
         let pool_ids = [];
+        const activeRoundId = roundFilter || round_id;
+
         if (pool_id) {
             pool_ids = [pool_id];
-        } else if (round_id) {
-            pool_ids = pools_by_round[round_id]?.map((x) => x.id);
+        } else if (activeRoundId) {
+            pool_ids = pools_by_round[activeRoundId]?.map((x) => x.id);
         } else {
             pool_ids = pools.map((x) => x.id);
         }
@@ -138,13 +141,56 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
             return acc;
         }, {});
 
+        // Calculate the maximum pick_number for each pool to use as undrafted value
+        const maxPickByPool = {};
+        for (const team of teams) {
+            for (const player of team.team_players) {
+                if (!pool_ids.includes(player.pool_id)) continue;
+                if (!maxPickByPool[player.pool_id] || player.pick_number > maxPickByPool[player.pool_id]) {
+                    maxPickByPool[player.pool_id] = player.pick_number;
+                }
+            }
+        }
+
         const summaries = [];
         for (const playerId in grouped) {
             const players = grouped[playerId];
-            const pos = players.map((x) => x.pick_number);
-            const adp = players.reduce((acc, player) => acc + player.pick_number, 0) / players.length;
 
-            const roundNumber = pool_to_round_number[players[0].pool_id] || 2;
+            // Group players by round to handle cross-round scenarios
+            const playersByRound = players.reduce((acc, p) => {
+                const rnd = pool_to_round_number[p.pool_id];
+                if (!acc[rnd]) acc[rnd] = [];
+                acc[rnd].push(p);
+                return acc;
+            }, {});
+
+            // Use the round with the most entries (or first round if tied)
+            const primaryRound = Object.keys(playersByRound).sort((a, b) =>
+                playersByRound[b].length - playersByRound[a].length
+            )[0];
+
+            const playersInPrimaryRound = playersByRound[primaryRound];
+            const pos = playersInPrimaryRound.map((x) => x.pick_number);
+            const min = Math.min(...pos);
+            const max = Math.max(...pos);
+
+            // Calculate the maximum possible pick for this round
+            const roundNumber = parseInt(primaryRound);
+
+            // Determine how many pools are being compared in this specific round
+            const totalPoolsInRound = pool_ids.filter(id => pool_to_round_number[id] === roundNumber).length;
+
+            // Get the maximum pick number across all pools in this round for undrafted value
+            const poolsInRound = pool_ids.filter(id => pool_to_round_number[id] === roundNumber);
+            const maxPickInRound = Math.max(...poolsInRound.map(pid => maxPickByPool[pid] || 0));
+
+            // If player was only drafted in one pool (but we're comparing multiple pools),
+            // treat undrafted as maxPickInRound + 1 when calculating ADP
+            const undraftedValue = maxPickInRound + 1;
+            const adp = playersInPrimaryRound.length < totalPoolsInRound
+                ? (playersInPrimaryRound.reduce((acc, player) => acc + player.pick_number, 0) + (undraftedValue * (totalPoolsInRound - playersInPrimaryRound.length))) / totalPoolsInRound
+                : playersInPrimaryRound.reduce((acc, player) => acc + player.pick_number, 0) / playersInPrimaryRound.length;
+
             const expectedPoints = getExpectedPoints(adp, roundNumber);
 
             // Only calculate value if player has stats
@@ -160,13 +206,16 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
 
             summaries.push({
                 adp,
-                team: teams_by_id[players[0].team_id],
-                points: players[0].score,
-                stats: players[0].stats,
-                min: Math.min(...pos),
-                max: Math.max(...pos),
-                name: players[0].player.name,
-                position: mapPos(players[0].player),
+                team: teams_by_id[playersInPrimaryRound[0].team_id],
+                points: playersInPrimaryRound[0].score,
+                stats: playersInPrimaryRound[0].stats,
+                min,
+                max,
+                maxPickInRound,
+                draftedInPoolCount: playersInPrimaryRound.length,
+                totalPoolsInRound,
+                name: playersInPrimaryRound[0].player.name,
+                position: mapPos(playersInPrimaryRound[0].player),
                 playerId,
                 roundNumber,
                 expectedPoints,
@@ -176,7 +225,7 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
         }
 
         return summaries;
-    }, [teams, pools, round_id, pool_id, teams_by_id, pools_by_round, pool_to_round_number]);
+    }, [teams, pools, roundFilter, round_id, pool_id, teams_by_id, pools_by_round, pool_to_round_number]);
 
     // Calculate statistics for z-scores
     const valueStats = useMemo(() => {
@@ -318,6 +367,11 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
         return 'text-semantic-danger';                       // 25%+ worse than expected
     };
 
+    const availableRounds = useMemo(() => {
+        const roundIds = new Set(pools.map((p) => p.round_id));
+        return rounds.filter((r) => roundIds.has(r.id));
+    }, [pools, rounds]);
+
     return (
         <div className="w-full">
             <div className="flex gap-4 mb-4 items-center flex-wrap">
@@ -330,6 +384,18 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                         className="w-full px-3 py-2 bg-steel border border-ui-border rounded-md text-sm"
                     />
                 </div>
+                <Select value={roundFilter} onValueChange={setRoundFilter}>
+                    <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Round" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableRounds.map((round) => (
+                            <SelectItem key={round.id} value={round.id}>
+                                {round.round === 2 ? 'Wildcard' : round.round === 3 ? 'Divisional' : round.round === 4 ? 'Conference' : `Round ${round.round}`}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 <Select value={posFilter} onValueChange={setPosFilter}>
                     <SelectTrigger className="w-[120px]">
                         <SelectValue placeholder="Position" />
@@ -415,7 +481,7 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                                         {pool_id == null && (
                                             <TableCell style={{ width: '80px' }}>
                                                 <span className="text-xs text-gray-400">
-                                                    {item.min}-{item.max}
+                                                    {item.draftedInPoolCount < item.totalPoolsInRound ? `${item.min}-UD` : `${item.min}-${item.max}`}
                                                 </span>
                                             </TableCell>
                                         )}
