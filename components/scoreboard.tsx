@@ -74,6 +74,7 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                     <DraftSummary
                         teams={teamSeason}
                         pools={pools || []}
+                        rounds={[currentRound]}
                         pool_id={selectedPool === 'all' ? null : selectedPool}
                         round_id={currentRound?.id}
                     />

@@ -51,11 +51,35 @@ function mapStatNameShort(stat) {
 interface DraftSummaryProps {
     teams: Team[];
     pools: any[];
+    rounds: any[];
     round_id?: string;
     pool_id?: string | null;
 }
 
-export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryProps) {
+function getExpectedPoints(adp: number, roundNumber: number): number {
+    const steps = [
+        { max: 20, min: 15 },
+        { max: 15, min: 10 },
+        { max: 10, min: 7 },
+        { max: 7, min: 5 }
+    ];
+
+    const teamsPerRound = roundNumber === 2 ? 12 : roundNumber === 3 ? 8 : roundNumber === 4 ? 4 : 2;
+
+    const stepIndex = Math.floor((adp - 1) / teamsPerRound);
+    const positionInStep = ((adp - 1) % teamsPerRound) + 1;
+
+    if (stepIndex >= steps.length) {
+        return steps[steps.length - 1].min;
+    }
+
+    const step = steps[stepIndex];
+    const stepProgress = (positionInStep - 1) / (teamsPerRound - 1);
+
+    return step.max - (step.max - step.min) * stepProgress;
+}
+
+export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftSummaryProps) {
     const [sortBy, setSortBy] = useState<'adp' | 'points' | 'value'>('adp');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -71,6 +95,17 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
             {}
         );
     }, [pools]);
+
+    const pool_to_round_number = useMemo(() => {
+        const mapping = {};
+        pools.forEach((pool) => {
+            const round = rounds?.find((r) => r.id === pool.round_id);
+            if (round) {
+                mapping[pool.id] = round.round;
+            }
+        });
+        return mapping;
+    }, [pools, rounds]);
 
     const teams_by_id = useMemo(() => {
         return teams?.reduce((acc, team) => {
@@ -109,6 +144,20 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
             const pos = players.map((x) => x.pick_number);
             const adp = players.reduce((acc, player) => acc + player.pick_number, 0) / players.length;
 
+            const roundNumber = pool_to_round_number[players[0].pool_id] || 2;
+            const expectedPoints = getExpectedPoints(adp, roundNumber);
+
+            // Only calculate value if player has stats
+            let value = null;
+            let scaledValue = null;
+            if (players[0].stats != null) {
+                const rawValue = players[0].score - expectedPoints;
+                // Scale the value: divide by expected points to get a percentage-based metric
+                // This gives us a sense of "how much better/worse than expected" as a ratio
+                scaledValue = (rawValue / expectedPoints) * 100;
+                value = rawValue;
+            }
+
             summaries.push({
                 adp,
                 team: teams_by_id[players[0].team_id],
@@ -118,15 +167,87 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
                 max: Math.max(...pos),
                 name: players[0].player.name,
                 position: mapPos(players[0].player),
-                playerId
+                playerId,
+                roundNumber,
+                expectedPoints,
+                value,
+                scaledValue
             });
         }
 
         return summaries;
-    }, [teams, pools, round_id, pool_id, teams_by_id, pools_by_round]);
+    }, [teams, pools, round_id, pool_id, teams_by_id, pools_by_round, pool_to_round_number]);
+
+    // Calculate statistics for z-scores
+    const valueStats = useMemo(() => {
+        const validValues = summary.filter((x) => x.value !== null).map((x) => x.value);
+        if (validValues.length === 0) return { mean: 0, stdDev: 1 };
+
+        const mean = validValues.reduce((acc, val) => acc + val, 0) / validValues.length;
+        const variance =
+            validValues.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / validValues.length;
+        const stdDev = Math.sqrt(variance);
+
+        return { mean, stdDev: stdDev || 1 };
+    }, [summary]);
+
+    // Add z-scores, stars, and percentile ranks to summary
+    const enrichedSummary = useMemo(() => {
+        return summary.map((item) => {
+            if (item.value === null) {
+                return { ...item, zScore: null, stars: 0, percentileRank: null, relativeChart: null };
+            }
+
+            // Calculate z-score
+            const zScore = (item.value - valueStats.mean) / valueStats.stdDev;
+
+            // Convert z-score to stars (1-5)
+            let stars = 3;
+            if (zScore >= 1.5) stars = 5;
+            else if (zScore >= 0.5) stars = 4;
+            else if (zScore >= -0.5) stars = 3;
+            else if (zScore >= -1.5) stars = 2;
+            else stars = 1;
+
+            // Calculate percentile rank within ±5 picks and generate chart
+            const adpRange = summary
+                .filter((x) => x.value !== null && Math.abs(x.adp - item.adp) <= 5)
+                .sort((a, b) => a.value - b.value);
+
+            const betterThan = adpRange.filter((x) => x.value < item.value).length;
+            const percentileRank = adpRange.length > 1 ? (betterThan / (adpRange.length - 1)) * 100 : null;
+
+            // Generate 9-bar ASCII chart with current player in middle
+            // Shows the 4 players drafted before and 4 after in draft order
+            let relativeChart = null;
+            // Sort all players by ADP
+            const sortedByADP = [...summary].sort((a, b) => a.adp - b.adp);
+            const currentIndex = sortedByADP.findIndex((x) => x.playerId === item.playerId);
+
+            if (currentIndex !== -1) {
+                const bars = [];
+                for (let i = 0; i < 9; i++) {
+                    const dataIndex = currentIndex - 4 + i;
+                    if (dataIndex >= 0 && dataIndex < sortedByADP.length) {
+                        const player = sortedByADP[dataIndex];
+                        if (player.value === null) {
+                            bars.push('_');
+                        } else {
+                            bars.push(i === 4 ? '█' : '▄');
+                        }
+                    } else {
+                        bars.push(' ');
+                    }
+                }
+                relativeChart = bars.join('');
+            }
+
+            return { ...item, zScore, stars, percentileRank, relativeChart };
+        });
+    }, [summary, valueStats]);
 
     const filteredAndSorted = useMemo(() => {
-        let filtered = summary;
+        let filtered = enrichedSummary;
 
         // Filter by position
         if (posFilter !== 'all') {
@@ -148,15 +269,17 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
             } else if (sortBy === 'points') {
                 comparison = b.points - a.points;
             } else if (sortBy === 'value') {
-                const aValue = a.points / a.adp;
-                const bValue = b.points / b.adp;
-                comparison = bValue - aValue;
+                // Handle null values - put them at the end
+                if (a.scaledValue === null && b.scaledValue === null) return 0;
+                if (a.scaledValue === null) return 1;
+                if (b.scaledValue === null) return -1;
+                comparison = b.scaledValue - a.scaledValue;
             }
             return sortDir === 'asc' ? comparison : -comparison;
         });
 
         return filtered;
-    }, [summary, posFilter, searchQuery, sortBy, sortDir]);
+    }, [enrichedSummary, posFilter, searchQuery, sortBy, sortDir]);
 
     const maxPoints = useMemo(() => {
         return Math.max(...summary.map((x) => x.points), 1);
@@ -186,15 +309,13 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
         return ['all', ...Array.from(posSet).sort()];
     }, [summary]);
 
-    const getValueColor = (points: number, adp: number) => {
-        const value = points / adp;
-        const avgValue = summary.reduce((acc, x) => acc + x.points / x.adp, 0) / summary.length;
-        const diff = ((value - avgValue) / avgValue) * 100;
-
-        if (diff > 20) return 'text-semantic-good';
-        if (diff > 0) return 'text-cyan';
-        if (diff > -20) return 'text-semantic-warning';
-        return 'text-semantic-danger';
+    const getValueColor = (scaledValue: number | null) => {
+        if (scaledValue === null) return 'text-gray-400';
+        // Scaled value is a percentage, so thresholds are different
+        if (scaledValue > 25) return 'text-semantic-good';  // 25%+ better than expected
+        if (scaledValue > 0) return 'text-cyan';             // Better than expected
+        if (scaledValue > -25) return 'text-semantic-warning'; // Within 25% of expected
+        return 'text-semantic-danger';                       // 25%+ worse than expected
     };
 
     return (
@@ -228,7 +349,7 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
                     <TableHeader>
                         <TableRow style={{ position: 'sticky', top: 0, background: '#1A1E25', zIndex: 2 }}>
                             <TableHead
-                                style={{ width: '200px', position: 'sticky', left: 0, background: '#1A1E25', zIndex: 3 }}
+                                style={{ width: '180px', position: 'sticky', left: 0, background: '#1A1E25', zIndex: 3 }}
                             >
                                 Player
                             </TableHead>
@@ -247,10 +368,13 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
                                 Points {sortBy === 'points' && (sortDir === 'asc' ? '↑' : '↓')}
                             </TableHead>
                             <TableHead
-                                style={{ width: '100px', cursor: 'pointer' }}
+                                style={{ width: '120px', cursor: 'pointer' }}
                                 onClick={() => toggleSort('value')}
                             >
                                 Value {sortBy === 'value' && (sortDir === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead style={{ width: '90px' }} title="Relative performance vs nearby picks">
+                                Rel
                             </TableHead>
                             <TableHead style={{ width: '60px' }}>Stats</TableHead>
                         </TableRow>
@@ -268,7 +392,7 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
                                         <TableCell
                                             style={{
                                                 fontWeight: 'bold',
-                                                width: '200px',
+                                                width: '180px',
                                                 position: 'sticky',
                                                 left: 0,
                                                 background: '#1A1E25',
@@ -306,10 +430,32 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell style={{ width: '100px' }}>
-                                            <span className={`text-sm font-semibold ${getValueColor(item.points, item.adp)}`}>
-                                                {(item.points / item.adp).toFixed(2)}
-                                            </span>
+                                        <TableCell style={{ width: '120px' }}>
+                                            {item.scaledValue !== null ? (
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xs inline-block mr-2 uppercase tracking-wide" style={{ width: '60px' }}>
+                                                        {item.stars === 5 ? 'ELITE' : item.stars === 4 ? 'GREAT' : item.stars === 3 ? 'SOLID' : item.stars === 2 ? 'POOR' : 'BUST'}
+                                                    </span>
+                                                    <span className={`text-sm font-semibold ${getValueColor(item.scaledValue)}`}>
+                                                        {item.scaledValue > 0 ? '+' : ''}{item.scaledValue.toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">-</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell style={{ width: '90px' }}>
+                                            {item.relativeChart !== null ? (
+                                                <span className="text-xs font-mono tracking-tight">
+                                                    {item.relativeChart.split('').map((char, idx) => (
+                                                        <span key={idx} className={idx === 4 ? 'text-cyan' : ''}>
+                                                            {char}
+                                                        </span>
+                                                    ))}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">-</span>
+                                            )}
                                         </TableCell>
                                         <TableCell style={{ width: '60px' }}>
                                             <span className="text-xs text-gray-400">
@@ -319,7 +465,7 @@ export function DraftSummary({ teams, pools, round_id, pool_id }: DraftSummaryPr
                                     </TableRow>
                                     {isExpanded && (
                                         <TableRow key={`${item.playerId}-stats`}>
-                                            <TableCell colSpan={7} className="bg-steel/30">
+                                            <TableCell colSpan={8} className="bg-steel/30">
                                                 <div className="grid grid-cols-3 md:grid-cols-6 gap-3 p-3">
                                                     {statsKeys.map((key) => (
                                                         <div key={key} className="flex flex-col">
