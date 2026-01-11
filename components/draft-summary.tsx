@@ -331,30 +331,31 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                     if (sortedValues.length === 0) return 2;
                     const rank = sortedValues.findIndex(v => v.value === value);
                     const percentile = rank / (sortedValues.length - 1 || 1);
-                    if (percentile <= 0.25) return 0; // Bottom quartile
-                    if (percentile <= 0.5) return 1;  // Second quartile
-                    if (percentile <= 0.75) return 2; // Third quartile
-                    return 3; // Top quartile
+                    if (percentile <= 0.2) return 0; // Bottom quartile
+                    if (percentile <= 0.4) return 1;  // Second quartile
+                    if (percentile <= 0.6) return 2; // Third quartile
+                    if (percentile <= 0.8) return 3; // Fourth quartile
+                    return 4; // Top quartile
                 };
 
                 const bars = [];
-                const barChars = ['▁', '▃', '▅', '█']; // Different heights for quartiles
+                const barCharts = ['▃', '▄', '▅', '▆', '▇', '█']
 
                 for (let i = 0; i < 9; i++) {
                     const dataIndex = currentIndex - 4 + i;
                     if (dataIndex >= 0 && dataIndex < sortedByADP.length) {
                         const player = sortedByADP[dataIndex];
                         if (player.value === null) {
-                            bars.push('_');
+                            bars.push({ char: '▁', quintile: null, isCurrent: i === 4 });
                         } else {
-                            const quartile = getQuartile(player.value);
-                            bars.push(barChars[quartile]);
+                            const quintile = getQuartile(player.value);
+                            bars.push({ char: barCharts[quintile], quintile, isCurrent: i === 4 });
                         }
                     } else {
-                        bars.push(' ');
+                        bars.push({ char: '▁', quintile: null, isCurrent: false });
                     }
                 }
-                relativeChart = bars.join('');
+                relativeChart = bars
             }
 
             return { ...item, relativeChart };
@@ -552,11 +553,22 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                                         <TableCell className="px-1 py-2 md:px-3" style={{ width: '75px' }}>
                                             {item.relativeChart !== null ? (
                                                 <span className="text-[10px] md:text-xs font-mono tracking-tighter md:tracking-tight">
-                                                    {item.relativeChart.split('').map((char, idx) => (
-                                                        <span key={idx} className={idx === 4 ? 'text-cyan' : ''}>
-                                                            {char}
-                                                        </span>
-                                                    ))}
+                                                    {item.relativeChart.map((bar, idx) => {
+                                                        let colorClass = '';
+                                                        if (bar.isCurrent) {
+                                                            colorClass = 'text-cyan';
+                                                        } else if (bar.quintile !== null) {
+                                                            colorClass = bar.quintile === 0 ? 'text-red-300' :
+                                                                bar.quintile < 2 ? 'text-yellow-300' :
+                                                                    bar.quintile < 5 ? 'text-green-300' :
+                                                                        'text-purple-500';
+                                                        }
+                                                        return (
+                                                            <span key={idx} className={colorClass}>
+                                                                {bar.char}
+                                                            </span>
+                                                        );
+                                                    })}
                                                 </span>
                                             ) : (
                                                 <span className="text-xs text-gray-400">-</span>
