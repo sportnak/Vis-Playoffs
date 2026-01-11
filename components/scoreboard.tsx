@@ -102,10 +102,26 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                         const playersWithStats = team.team_players.filter((x) => x.pool_id === pool?.id && x.stats != null);
                         const pointsPerPlayer = playersWithStats.length > 0 ? (roundScore / playersWithStats.length) : 0;
                         const remainingPlayers = yetToPlay.length;
+                        const calculatePowerValue = (pickNumber: number) => {
+                            if (!pool?.draft_order) return 0;
+                            const teamsInRound = pool.draft_order.length;
+                            const round = Math.ceil(pickNumber / teamsInRound);
+                            const indexInRound = ((pickNumber - 1) % teamsInRound) + 1;
+                            const pickValue = round + (Math.pow(indexInRound, 3) / 100);
+                            return 5 / pickValue;
+                        };
+
+                        const remainingPower = yetToPlay.reduce((sum, player) => {
+                            return sum + calculatePowerValue(player.pick_number || 1);
+                        }, 0);
+                        const usedPower = playersWithStats.reduce((sum, player) => {
+                            return sum + calculatePowerValue(player.pick_number || 1);
+                        }, 0);
+                        const efficiency = usedPower > 0 ? roundScore / usedPower : 0;
                         return (
                             <div
                                 key={team.id}
-                                className={`bg-steel p-5 shadow-sm rounded-md border ${rank === 1
+                                className={`bg-steel p-3 md:p-5 shadow-sm rounded-md border ${rank === 1
                                         ? 'border-yellow-500 bg-yellow-500/5'
                                         : rank === 2
                                             ? 'border-gray-400 bg-gray-400/5'
@@ -114,28 +130,40 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                                                 : 'border-ui-border'
                                     } ${teamMember?.id === member?.id ? 'ring-2 ring-frost/30' : ''}`}
                             >
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-between mb-1.5 md:mb-2">
+                                    <div className="flex items-center gap-1.5 md:gap-2">
                                         {getRankIcon(rank)}
-                                        <h3 className={`text-lg font-light truncate ${rank <= 3 ? 'font-semibold' : ''}`}>
+                                        <h3 className={`text-base md:text-lg font-light truncate ${rank <= 3 ? 'font-semibold' : ''}`}>
                                             {team.name}
                                         </h3>
                                     </div>
-                                    <p className={`text-sm font-bold ${rank <= 3 ? 'text-lg' : ''}`}>{team.seasonScore}</p>
+                                    <p className={`text-sm font-bold ${rank <= 3 ? 'md:text-lg' : ''}`}>{team.seasonScore}</p>
                                 </div>
 
-                                <div className="flex items-center gap-3 mb-4 text-[10px] text-muted-foreground">
-                                    <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4 text-[9px] md:text-[10px] text-muted-foreground">
+                                    <div className="flex items-center gap-0.5 md:gap-1">
                                         <span>PPP:</span>
                                         <span className="font-medium">{pointsPerPlayer.toFixed(1)}</span>
                                     </div>
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-0.5 md:gap-1">
                                         <span>REM:</span>
                                         <span className="font-medium">{remainingPlayers}</span>
                                     </div>
+                                    <div className="flex items-center gap-0.5 md:gap-1">
+                                        <span>PWR:</span>
+                                        <span className="font-medium">{remainingPower.toFixed(1)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 md:gap-1">
+                                        <span>USED:</span>
+                                        <span className="font-medium">{usedPower.toFixed(1)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 md:gap-1">
+                                        <span>EFF:</span>
+                                        <span className="font-medium">{efficiency.toFixed(1)}</span>
+                                    </div>
                                 </div>
 
-                                <div className="mb-4 flex items-center justify-between">
+                                <div className="mb-2 md:mb-4 flex items-center justify-between">
                                     <p className={`text-xs ${getPointsBackColor(pointsBack)}`}>
                                         {getPointsBackText(pointsBack)}
                                     </p>
@@ -154,7 +182,7 @@ export function Scoreboard({ league_id }: { league_id: string }) {
                                     memberId={member?.id}
                                 />
 
-                                <div className="flex justify-between items-center mt-3 pt-3 border-t border-ui-border">
+                                <div className="flex justify-between items-center mt-2 md:mt-3 pt-2 md:pt-3 border-t border-ui-border">
                                     <p className="text-xs tracking-mono">ROUND SCORE</p>
                                     <p className="text-sm font-bold">{roundScore}</p>
                                 </div>
