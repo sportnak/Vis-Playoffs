@@ -58,10 +58,10 @@ interface DraftSummaryProps {
 
 function getExpectedPoints(adp: number, roundNumber: number): number {
     const steps = [
+        { max: 25, min: 20 },
         { max: 20, min: 15 },
-        { max: 15, min: 10 },
-        { max: 10, min: 7 },
-        { max: 7, min: 5 }
+        { max: 15, min: 12 },
+        { max: 12, min: 10 }
     ];
 
     const teamsPerRound = roundNumber === 2 ? 12 : roundNumber === 3 ? 8 : roundNumber === 4 ? 4 : 2;
@@ -311,7 +311,35 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
             const currentIndex = sortedByADP.findIndex((x) => x.playerId === item.playerId);
 
             if (currentIndex !== -1) {
+                // Collect values from the 5 picks before and after
+                const rangeValues = [];
+                for (let i = 0; i < 9; i++) {
+                    const dataIndex = currentIndex - 4 + i;
+                    if (dataIndex >= 0 && dataIndex < sortedByADP.length) {
+                        const player = sortedByADP[dataIndex];
+                        if (player.value !== null) {
+                            rangeValues.push({ value: player.value, index: i });
+                        }
+                    }
+                }
+
+                // Sort by value to calculate quartiles
+                const sortedValues = [...rangeValues].sort((a, b) => a.value - b.value);
+
+                // Calculate quartile thresholds
+                const getQuartile = (value: number) => {
+                    if (sortedValues.length === 0) return 2;
+                    const rank = sortedValues.findIndex(v => v.value === value);
+                    const percentile = rank / (sortedValues.length - 1 || 1);
+                    if (percentile <= 0.25) return 0; // Bottom quartile
+                    if (percentile <= 0.5) return 1;  // Second quartile
+                    if (percentile <= 0.75) return 2; // Third quartile
+                    return 3; // Top quartile
+                };
+
                 const bars = [];
+                const barChars = ['▁', '▃', '▅', '█']; // Different heights for quartiles
+
                 for (let i = 0; i < 9; i++) {
                     const dataIndex = currentIndex - 4 + i;
                     if (dataIndex >= 0 && dataIndex < sortedByADP.length) {
@@ -319,7 +347,8 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                         if (player.value === null) {
                             bars.push('_');
                         } else {
-                            bars.push(i === 4 ? '█' : '▄');
+                            const quartile = getQuartile(player.value);
+                            bars.push(barChars[quartile]);
                         }
                     } else {
                         bars.push(' ');
@@ -415,38 +444,44 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
             </div>
 
             <div className="w-full max-h-[calc(100vh-300px)] overflow-auto rounded-md border border-ui-border">
-                <Table className="w-full">
+                <Table className="w-full text-xs md:text-sm">
                     <TableHeader>
                         <TableRow style={{ position: 'sticky', top: 0, background: '#1A1E25', zIndex: 2 }}>
                             <TableHead
-                                style={{ width: '180px', position: 'sticky', left: 0, background: '#1A1E25', zIndex: 3 }}
-                            >
-                                Player
-                            </TableHead>
-                            <TableHead
-                                style={{ width: '60px', cursor: 'pointer' }}
+                                className="px-1 py-2 md:px-3"
+                                style={{ width: '45px', cursor: 'pointer' }}
                                 onClick={() => toggleSort('adp')}
                             >
                                 {pool_id == null ? 'ADP' : 'Pick'} {sortBy === 'adp' && (sortDir === 'asc' ? '↑' : '↓')}
                             </TableHead>
-                            {pool_id != null && <TableHead style={{ width: '100px' }}>Team</TableHead>}
-                            {pool_id == null && <TableHead style={{ width: '80px' }}>Range</TableHead>}
                             <TableHead
-                                style={{ width: '80px', cursor: 'pointer' }}
+                                className="px-2 py-2"
+                                style={{ width: '140px', position: 'sticky', left: 0, background: '#1A1E25', zIndex: 3 }}
+                            >
+                                <span className="md:hidden">Player</span>
+                                <span className="hidden md:inline">Player</span>
+                            </TableHead>
+                            {pool_id != null && <TableHead className="px-1 py-2 md:px-3" style={{ width: '80px' }}>Team</TableHead>}
+                            {pool_id == null && <TableHead className="px-1 py-2 md:px-3" style={{ width: '60px' }}>Range</TableHead>}
+                            <TableHead
+                                className="px-1 py-2 md:px-3"
+                                style={{ width: '60px', cursor: 'pointer' }}
                                 onClick={() => toggleSort('points')}
                             >
-                                Points {sortBy === 'points' && (sortDir === 'asc' ? '↑' : '↓')}
+                                <span className="md:hidden">Pts</span>
+                                <span className="hidden md:inline">Points</span> {sortBy === 'points' && (sortDir === 'asc' ? '↑' : '↓')}
                             </TableHead>
                             <TableHead
-                                style={{ width: '120px', cursor: 'pointer' }}
+                                className="px-1 py-2 md:px-3"
+                                style={{ width: '95px', cursor: 'pointer' }}
                                 onClick={() => toggleSort('value')}
                             >
                                 Value {sortBy === 'value' && (sortDir === 'asc' ? '↑' : '↓')}
                             </TableHead>
-                            <TableHead style={{ width: '90px' }} title="Relative performance vs nearby picks">
+                            <TableHead className="px-1 py-2 md:px-3" style={{ width: '75px' }} title="Relative performance vs nearby picks">
                                 Rel
                             </TableHead>
-                            <TableHead style={{ width: '60px' }}>Stats</TableHead>
+                            <TableHead className="px-1 py-2 md:px-3" style={{ width: '30px' }}><span className="hidden md:inline">Stats</span></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -456,43 +491,43 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                                 <>
                                     <TableRow
                                         key={item.playerId}
-                                        className="cursor-pointer hover:bg-steel/50"
+                                        className="cursor-pointer hover:bg-steel/50 h-12"
                                         onClick={() => toggleRow(item.playerId)}
                                     >
+                                        <TableCell className="px-1 py-2 md:px-3" style={{ width: '45px' }}>
+                                            {pool_id == null ? item.adp.toFixed(1) : Math.floor(item.adp)}
+                                        </TableCell>
                                         <TableCell
+                                            className="px-2 py-2 max-w-[120px] md:max-w-[140px]"
                                             style={{
                                                 fontWeight: 'bold',
-                                                width: '180px',
                                                 position: 'sticky',
                                                 left: 0,
                                                 background: '#1A1E25',
                                                 zIndex: 1
                                             }}
                                         >
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-gray-400 w-8">{item.position}</span>
-                                                <span className="truncate">{item.name}</span>
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] md:text-xs text-gray-400 w-5 md:w-8 flex-shrink-0">{item.position}</span>
+                                                <span className="truncate text-xs sm:text-xs md:text-base">{item.name}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell style={{ width: '60px' }}>
-                                            {pool_id == null ? item.adp.toFixed(1) : Math.floor(item.adp)}
-                                        </TableCell>
                                         {pool_id != null && (
-                                            <TableCell style={{ width: '100px' }}>
-                                                <span className="text-xs">{item.team}</span>
+                                            <TableCell className="px-1 py-2 md:px-3" style={{ width: '80px' }}>
+                                                <span className="text-[10px] md:text-xs truncate block">{item.team}</span>
                                             </TableCell>
                                         )}
                                         {pool_id == null && (
-                                            <TableCell style={{ width: '80px' }}>
-                                                <span className="text-xs text-gray-400">
+                                            <TableCell className="px-1 py-2 justify-center flex max-h-12 h-12 xs:max-w-[40px] md:px-3" style={{ width: '60px' }}>
+                                                <span className="text-[10px] md:text-xs text-gray-400 content-center">
                                                     {item.draftedInPoolCount < item.totalPoolsInRound ? `${item.min}-UD` : `${item.min}-${item.max}`}
                                                 </span>
                                             </TableCell>
                                         )}
-                                        <TableCell style={{ width: '80px' }}>
-                                            <div className="flex flex-col gap-1">
+                                        <TableCell className="px-1 py-2 md:px-3" style={{ width: '60px' }}>
+                                            <div className="flex flex-col gap-0.5 md:gap-1">
                                                 <span className="font-bold">{item.points.toFixed(1)}</span>
-                                                <div className="w-full bg-gray-700 h-1 rounded-full overflow-hidden">
+                                                <div className="w-full bg-gray-700 h-0.5 md:h-1 rounded-full overflow-hidden">
                                                     <div
                                                         className="h-full bg-cyan"
                                                         style={{ width: `${(item.points / maxPoints) * 100}%` }}
@@ -500,13 +535,13 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell style={{ width: '120px' }}>
+                                        <TableCell className="px-1 py-2 md:px-3" style={{ width: '95px' }}>
                                             {item.scaledValue !== null ? (
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xs inline-block mr-2 uppercase tracking-wide" style={{ width: '60px' }}>
+                                                <div className="flex items-center gap-1 md:gap-3">
+                                                    <span className="text-[9px] md:text-xs inline-block uppercase tracking-wide md:mr-2" style={{ width: '38px' }}>
                                                         {item.stars === 5 ? 'ELITE' : item.stars === 4 ? 'GREAT' : item.stars === 3 ? 'SOLID' : item.stars === 2 ? 'POOR' : 'BUST'}
                                                     </span>
-                                                    <span className={`text-sm font-semibold ${getValueColor(item.scaledValue)}`}>
+                                                    <span className={`text-xs md:text-sm font-semibold ${getValueColor(item.scaledValue)}`}>
                                                         {item.scaledValue > 0 ? '+' : ''}{item.scaledValue.toFixed(0)}%
                                                     </span>
                                                 </div>
@@ -514,9 +549,9 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                                                 <span className="text-xs text-gray-400">-</span>
                                             )}
                                         </TableCell>
-                                        <TableCell style={{ width: '90px' }}>
+                                        <TableCell className="px-1 py-2 md:px-3" style={{ width: '75px' }}>
                                             {item.relativeChart !== null ? (
-                                                <span className="text-xs font-mono tracking-tight">
+                                                <span className="text-[10px] md:text-xs font-mono tracking-tighter md:tracking-tight">
                                                     {item.relativeChart.split('').map((char, idx) => (
                                                         <span key={idx} className={idx === 4 ? 'text-cyan' : ''}>
                                                             {char}
@@ -527,7 +562,7 @@ export function DraftSummary({ teams, pools, rounds, round_id, pool_id }: DraftS
                                                 <span className="text-xs text-gray-400">-</span>
                                             )}
                                         </TableCell>
-                                        <TableCell style={{ width: '60px' }}>
+                                        <TableCell className="px-1 py-2 md:px-3" style={{ width: '30px' }}>
                                             <span className="text-xs text-gray-400">
                                                 {isExpanded ? '▼' : '▶'}
                                             </span>
